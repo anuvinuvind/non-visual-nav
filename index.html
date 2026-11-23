@@ -216,8 +216,8 @@ const arcP=b=>[2.5+2*Math.sin(b*Math.PI/180),6-2*Math.cos(b*Math.PI/180)],CPS=[[
 let pos=[0,0],cp=0,running=false,gmode=true,G={lat:0,th:0,dc:0},ac,pn,mst,NZ,sv,nxt=0,nxtD=0,lastSp='',lastT=0;
 const wrap=a=>((a+540)%360)-180,dirT=()=>/Speech|Code/.test(T.value),ALLOW=()=>T.value==='H.Pulse'?'rw':T.value==='A.Stream'?'vtd':'rvtwd',isC=s=>s!=='—'&&'rvtwd'.includes(s.toLowerCase());
 function pairFix(S,P){const s=S.value;if(s==='—'||s==='N'){P.value='';P.disabled=true;return}
-const l=s.toLowerCase(),low=s===l;P.disabled=false;[...P.options].forEach(o=>o.disabled=(o.value===''&&low)||(o.value==='1'&&l==='d'));
-if(P.selectedOptions[0].disabled)P.value=low?(l==='d'?'0':'1'):''}
+const l=s.toLowerCase(),low=s===l;P.disabled=false;const no1=l==='d'&&!window.ALLOWD1;[...P.options].forEach(o=>o.disabled=(o.value===''&&low)||(o.value==='1'&&no1));
+if(P.selectedOptions[0].disabled)P.value=low?(no1?'0':'1'):''}
 function derive(ca){for(const s of[S1.value,S2.value])if(isC(s)&&ca.includes(s.toUpperCase()))return s.toUpperCase();return ca.includes(CA.value)&&CA.value!=='S'?CA.value:ca[0]}
 function fix(){const d=dirT(),hap=T.value[0]==='H';[R,S1,P1,S2,P2,CA].forEach(e=>e.disabled=d);CV.disabled=!/Code/.test(T.value);SP.disabled=d||hap;if(d){[...R.options].forEach(o=>o.disabled=o.value==='P'||o.value==='G');if(R.value==='P'||R.value==='G')R.value='C';R.disabled=false;return}
 if(hap)SP.checked=false;
@@ -518,6 +518,7 @@ $('cclr').onclick=()=>{if(confirm('Delete all stored carrier-test data on this d
 <script>
 /* ===================== SCREENING TEST (grid walk) ===================== */
 (()=>{
+window.ALLOWD1=true;/* screening allows d1 (distortion strongest on target); the main tester keeps its old rule */
 /*CORE3*/
 const COLS='ABCDEFGHIJKL',K=12,LAST=11;
 const ptl=(x,y)=>COLS[Math.max(0,Math.min(LAST,Math.round(x)))]+Math.max(0,Math.min(LAST,Math.round(y)));
@@ -586,14 +587,17 @@ const say=t=>{$('sx-st').textContent=t};
 const F0={T:T.value,R:R.value,S1:S1.value,P1:P1.value,S2:S2.value,P2:P2.value,CV:CV.value,SP:SP.checked},P0=PATH.slice(),C0=CPS.slice();
 function applyDesign(c){T.value=c.T;R.disabled=false;R.value=c.R;CV.value=c.CV;SP.checked=!!c.SP;fix();S1.value=c.S1;P1.value=c.P1;S2.value=c.S2;P2.value=c.P2;fix();ui()}
 const DES=catalogCfg().map((c,i)=>{applyDesign(c);return Object.assign({},c,{i,name:names()[0],mod:c.T[0]==='H'?'haptic':'audio'})});
-T.value=F0.T;R.value=F0.R;CV.value=F0.CV;SP.checked=F0.SP;fix();S1.value=F0.S1;P1.value=F0.P1;S2.value=F0.S2;P2.value=F0.P2;fix();ui();
+window.ALLOWD1=false;T.value=F0.T;R.value=F0.R;CV.value=F0.CV;SP.checked=F0.SP;fix();S1.value=F0.S1;P1.value=F0.P1;S2.value=F0.S2;P2.value=F0.P2;fix();ui();
 const RD={P:'how far you are from the path',C:'whether you are pointing at the next checkpoint',L:'whether you are pointing at a guide point that moves ahead of you',G:'how close you are to the next checkpoint'},CD={r:'the rate of the pulses',t:'the pitch',v:'the loudness',w:'the length of each pulse',d:'how rough or distorted it sounds'};
-const describe=d=>d.T==='A.Speech'?'Spoken directions (forward, left, right, turn around) that tell you where to turn.':/Code/.test(d.T)?(d.mod==='haptic'?'Vibration':'Beep')+' patterns that tell you to go straight, or turn left or right.':`${d.T==='A.Stream'?'A continuous sound':d.T==='A.Pulse'?'Beeps':'Vibration pulses'} that tell you ${RD[d.R]}. The feedback changes through ${CD[d.car]}.`;
+const CN={r:'pulse rate',t:'pitch',v:'loudness',w:'pulse length',d:'roughness'},HI={r:'fastest',t:'highest',v:'loudest',w:'longest',d:'roughest'},LO={r:'no pulses at all',t:'its lowest pitch',v:'silence',w:'no pulses at all',d:'a clean sound'},ON={P:'you are exactly on the path',C:'you point straight at the next checkpoint',L:'you point straight at the guide point',G:'you are at the next checkpoint'},OFF={P:'you drift sideways off the path',C:'you point away from the checkpoint',L:'you point away from the guide point',G:'you get farther from the checkpoint'};
+const describe=d=>d.T==='A.Speech'?'Spoken directions (forward, left, right, turn around) that tell you where to turn.':/Code/.test(d.T)?(d.mod==='haptic'?'Vibration':'Beep')+' patterns that tell you to go straight, or turn left or right.':`${d.T==='A.Stream'?'A continuous sound':d.T==='A.Pulse'?'Beeps':'Vibration pulses'} whose ${CN[d.car]} is ${HI[d.car]} when ${ON[d.R]}, and falls to ${LO[d.car]} as ${OFF[d.R]}.`;
 const clipName=n=>n.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
 /* ---- plan and data ---- */
-function getPlan(force){let p=store.g(PLK,null);if(!force&&p&&p.users===cfg.nu&&p.seed===cfg.sd)return p;
+const catSig=()=>DES.map(d=>d.name).join('|');
+function getPlan(force){let p=store.g(PLK,null);const stale=p&&p.sig!==catSig();
+if(!force&&p&&p.users===cfg.nu&&p.seed===cfg.sd&&(!stale||trials().length)){if(stale)say('The design list changed since this plan was made, and data already exists. Export, clear, then regenerate.');return p}
 const g=genPlan({users:cfg.nu,seed:cfg.sd,designs:DES.length,hap:DES.map(d=>d.mod==='haptic')});
-p={users:cfg.nu,seed:cfg.sd,names:DES.map(d=>d.name),trials:g.trials.map(u=>u.map(t=>({name:DES[t.d].name,cls:t.cls,dir:t.dir,map:t.map}))),report:fmtRep(planReport(g,DES.map(d=>d.mod==='haptic')))};store.s(PLK,p);return p}
+p={users:cfg.nu,seed:cfg.sd,sig:catSig(),names:DES.map(d=>d.name),trials:g.trials.map(u=>u.map(t=>({name:DES[t.d].name,cls:t.cls,dir:t.dir,map:t.map}))),report:fmtRep(planReport(g,DES.map(d=>d.mod==='haptic')))};store.s(PLK,p);return p}
 const trials=()=>store.g(TRK,[]),trKey=(u,p)=>'sx_tr_'+u+'_'+p;
 const nextPos=u=>{const dn=new Set(trials().filter(t=>t.u===u).map(t=>t.pos));for(let p=1;p<=K;p++)if(!dn.has(p))return p;return 0};
 function mk(u,pos,dry){const p=getPlan(),t=p.trials[u-1][pos-1],des=DES.find(d=>d.name===t.name);if(!des)throw new Error('design '+t.name+' is not in the catalogue; regenerate the plan');
@@ -620,22 +624,23 @@ let introSpeak=0;
 function stopSpeak(){if(window.speechSynthesis)speechSynthesis.cancel();introSpeak=0}
 function speakLine(text){if(!window.speechSynthesis||!text)return;stopSpeak();const u=new SpeechSynthesisUtterance(text);u.rate=.93;u.pitch=1;const v=speechSynthesis.getVoices().find(x=>/en/i.test(x.lang)&&(x.name.includes('Samantha')||x.localService))||speechSynthesis.getVoices().find(x=>/^en(-|$)/i.test(x.lang));if(v)u.voice=v;const id=++introSpeak;u.onend=()=>{if(introSpeak===id)introSpeak=0};speechSynthesis.speak(u)}
 function sxDec(s,p){if(s==='—')return'hold';if(s==='N')return'nil';const l=s.toLowerCase();if(s==='M')return p===''?'mid':p==='1'?'halfspike':'halfvalley';if(s===l)return p==='0'?'growth':'decay';return p===''?'full':p==='1'?'spike':'valley'}
-function sxGradY(u){const t=Math.max(0,Math.min(1,u));return t<=.5?2*t:2*(1-t)}
-function drawSxGrad(cvs,ref,car,pinU){if(!cvs)return;const gx=cvs.getContext('2d'),W=cvs.width,H=cvs.height,mu='#9a9a9c',ak='#f5b700',y=v=>96-v*70;
-const g=ref==='G',a0=8,a1=300,mid=(a0+a1)/2,mnt=[[0,0],[.5,1],[1,0]];
-gx.clearRect(0,0,W,H);gx.font='10px system-ui';gx.fillStyle=mu;gx.strokeStyle=mu;gx.lineWidth=.5;
-[['full',1],['mid',.5],['nil',0]].forEach(z=>{gx.beginPath();gx.moveTo(a0,y(z[1]));gx.lineTo(a1,y(z[1]));gx.stroke();gx.fillText(z[0],306,y(z[1])+3)});
-gx.lineWidth=3;gx.lineJoin='round';gx.strokeStyle=ak;gx.beginPath();
-mnt.forEach((p,i)=>{const X=a0+p[0]*(a1-a0),Y=y(p[1]);i?gx.lineTo(X,Y):gx.moveTo(X,Y)});gx.stroke();
-if(g){gx.setLineDash([3,4]);gx.lineWidth=1;const mx=a0+.6*(a1-a0);gx.beginPath();gx.moveTo(mx,8);gx.lineTo(mx,104);gx.stroke();gx.setLineDash([])}
-else{gx.setLineDash([3,4]);gx.lineWidth=1;gx.beginPath();gx.moveTo(mid,8);gx.lineTo(mid,104);gx.stroke();gx.setLineDash([])}
-if(pinU!=null){const u=Math.max(0,Math.min(1,pinU)),X=a0+u*(a1-a0),Y=y(sxGradY(u));gx.fillStyle='#fff';gx.beginPath();gx.arc(X,Y,5,0,7);gx.fill();gx.strokeStyle=ak;gx.lineWidth=2;gx.stroke()}
-const lb={P:['far off path','on path (strongest)','far off path'],C:['away from target angle','pointing correctly','away from target angle'],L:['away from guide point','pointing correctly','away from guide point'],G:['far from checkpoint','at checkpoint','far from checkpoint']}[ref];
-gx.fillStyle=mu;gx.font='11px system-ui';if(g){gx.fillText('near next checkpoint',10,122);gx.fillText('far',a1-20,122)}else{gx.fillText(lb[0],10,122);gx.fillText(lb[1],mid-52,122);gx.fillText(lb[2],a1-90,122)}}
-function sxPinFromWalk(des,lat,th,dc){const r=des.R,s=cfg.sp,bnd=cfg.bw*s;
-if(r==='P'){const b=Math.max(bnd,.12);return Math.max(0,Math.min(1,.5+Math.min(1,lat/b)*.5))}
-if(r==='G'){const t=Math.max(cfg.ld*s,s);return Math.max(0,Math.min(1,1-dc/t))}
-const b=Math.max(cfg.an,5);return Math.max(0,Math.min(1,.5-Math.min(1,Math.abs(th)/b)*.5))}
+const CNAME={r:'pulse rate',t:'pitch',v:'loudness',w:'pulse length',d:'roughness'};
+/* Response curve exactly as the engine computes it for a single-zone carrier with polarity 1:
+   strength = 1 - |deviation|/threshold inside the threshold, 0 beyond. sig is deviation / threshold (signed).
+   Gap referent is one-sided: sig = distance to checkpoint / (leg length / 0.6). */
+function drawSxGrad(cvs,ref,car,sig){if(!cvs)return;const gx=cvs.getContext('2d'),W=cvs.width,H=cvs.height,mu='#9a9a9c',ak='#f5b700',y=v=>92-v*66,a0=8,a1=300,one=ref==='G',X=s=>one?a0+s*(a1-a0):a0+(s+2)/4*(a1-a0);
+gx.clearRect(0,0,W,H);gx.textAlign='left';gx.font='10px system-ui';gx.fillStyle=mu;gx.strokeStyle=mu;gx.lineWidth=.5;
+[['max',1],['min',0]].forEach(z=>{gx.beginPath();gx.moveTo(a0,y(z[1]));gx.lineTo(a1,y(z[1]));gx.stroke();gx.fillText(z[0],306,y(z[1])+3)});
+gx.fillStyle='#ddd';gx.font='bold 11px system-ui';gx.fillText((CNAME[car]||'feedback strength')+(one?': strongest at the checkpoint':': strongest at the centre'),a0,12);
+const pts=one?[[0,1],[1,0]]:[[-2,0],[-1,0],[0,1],[1,0],[2,0]];
+gx.lineWidth=3;gx.lineJoin='round';gx.strokeStyle=ak;gx.beginPath();pts.forEach((p,i)=>{const px=X(p[0]),py=y(p[1]);i?gx.lineTo(px,py):gx.moveTo(px,py)});gx.stroke();
+gx.setLineDash([3,4]);gx.lineWidth=1;gx.strokeStyle=mu;gx.fillStyle=mu;gx.font='9px system-ui';gx.textAlign='center';
+const tick=(s,txt)=>{gx.beginPath();gx.moveTo(X(s),16);gx.lineTo(X(s),y(0)+4);gx.stroke();gx.fillText(txt,X(s),y(0)+14)};
+if(one)tick(.6,'start of leg');else{const e=ref==='P'?'band edge':'±'+cfg.an+'°';tick(-1,e);tick(1,e);tick(0,'')}
+gx.setLineDash([]);
+const lb={P:['left of path','on path','right of path'],C:['pointing left of it','pointing at it','pointing right of it'],L:['pointing left of it','pointing at it','pointing right of it'],G:['at checkpoint','','far away']}[ref];
+gx.fillStyle=mu;gx.font='11px system-ui';if(one){gx.textAlign='left';gx.fillText(lb[0],a0,H-6);gx.textAlign='right';gx.fillText(lb[2],a1,H-6)}else{gx.textAlign='left';gx.fillText(lb[0],a0,H-6);gx.textAlign='center';gx.fillText(lb[1],X(0),H-6);gx.textAlign='right';gx.fillText(lb[2],a1,H-6)}
+if(sig!=null){const s=one?clampn(sig,0,1):clampn(sig,-2,2),v=one?1-s:Math.max(0,1-Math.abs(s));gx.fillStyle='#fff';gx.strokeStyle=ak;gx.lineWidth=2;gx.beginPath();gx.arc(X(s),y(v),6,0,7);gx.fill();gx.stroke()}}
 /* ---- built-in animated demos (used whenever a video file is missing) ---- */
 const DPTS=[[0,0],[0,5],[3,5],[3,9]];
 const clampn=(x,a,b)=>Math.max(a,Math.min(b,x)),easeo=x=>x*x*(3-2*x);
@@ -643,67 +648,75 @@ function designDemo(){const des=S.des,s=cfg.sp,c=$('sx-dm'),g=c.getContext('2d')
 for(let i=0;i<3;i++){const dx=DPTS[i+1][0]-DPTS[i][0],dy=DPTS[i+1][1]-DPTS[i][1],l=Math.hypot(dx,dy);segs.push({a:DPTS[i],dx:dx/l,dy:dy/l,l,s0:L});L+=l}
 const DUR=16,X=u=>170+u*28,Y=v=>285-v*28,hap=des.mod==='haptic';
 const state=()=>{const r=des.R;if(r==='P')return Math.abs(G.lat)<=cfg.bw*s?'You are on the path':`You are off the path (${(G.lat/s).toFixed(1)} cells)`;if(r==='G')return`Gap to the next checkpoint: ${(G.dc/s).toFixed(1)} cells`;return Math.abs(G.th)<=cfg.an?`You are pointing at the ${r==='C'?'checkpoint':'guide point'}`:`You are pointing away (${Math.abs(G.th|0)}°)`};
+const sigNow=off=>{if(des.R==='P')return off/cfg.bw;if(des.R==='G'){const pv=cp>0?CPS[cp-1]:[0,0],cc=CPS[cp],thr=Math.hypot(cc[0]-pv[0],cc[1]-pv[1])/.6;return G.dc/thr}return -G.th/cfg.an};
 const draw=(p,ang,hd)=>{g.fillStyle='#111';g.fillRect(0,0,480,300);g.strokeStyle='#333';g.lineWidth=1;for(let u=-4;u<=8;u++){g.beginPath();g.moveTo(X(u),Y(-1));g.lineTo(X(u),Y(10));g.stroke()}for(let v=-1;v<=10;v++){g.beginPath();g.moveTo(X(-4),Y(v));g.lineTo(X(8),Y(v));g.stroke()}
 g.strokeStyle='#8a6d00';g.lineWidth=4;g.beginPath();DPTS.forEach((q,i)=>i?g.lineTo(X(q[0]),Y(q[1])):g.moveTo(X(q[0]),Y(q[1])));g.stroke();
 DPTS.slice(1).forEach((q,i)=>{g.beginPath();g.arc(X(q[0]),Y(q[1]),i===cp?9:5,0,7);g.strokeStyle=i===cp?'#f5b800':'#8a6d00';g.lineWidth=i===cp?3:2;g.stroke()});
 g.fillStyle='#2fa76a';g.beginPath();g.arc(X(0),Y(0),6,0,7);g.fill();
 const a=hd*Math.PI/180;g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(X(p[0]),Y(p[1]));g.lineTo(X(p[0])+Math.sin(a)*26,Y(p[1])-Math.cos(a)*26);g.stroke();g.fillStyle='#fff';g.beginPath();g.arc(X(p[0]),Y(p[1]),7,0,7);g.fill()};
-draw([0,0],0,0);cap.innerHTML=`${describe(des)}<br><span class="m">${hap?'Hold the phone and feel the vibration.':'Turn the volume up.'} Watch how the feedback changes when the dot leaves the line or turns away. Voice explains when you press Play.</span><br><b id="sx-ds"> </b>`;
-const dg=$('sx-grad');if(dg){if(/Speech|Code/.test(des.T)||des.car==null)dg.hidden=true;else{dg.hidden=false;drawSxGrad(dg,des.R,des.car,.5)}}
+const dg=$('sx-grad'),hasG=!(/Speech|Code/.test(des.T)||des.car==null);
+draw([0,0],0,0);cap.innerHTML=`${describe(des)}<br><span class="m">${hap?'Hold the phone and feel the vibration.':'Turn the volume up.'} The white dot on the graph is you, in real time. Voice explains when you press Play.</span><br><b id="sx-ds"> </b>`;
+if(dg){dg.hidden=!hasG;if(hasG)drawSxGrad(dg,des.R,des.car,0)}
 btn.textContent='▶ Play demo';
 const stop=()=>{clearInterval(demoT);demoT=null;if(demoEng){demoEng=false;restoreEngine()}btn.textContent='▶ Play again'};
 const start=()=>{stop();stopSpeak();if(!ac)initAudio();ac.resume();designVoice(des);applyParams();applyDesign(des);const loc=DPTS.map(q=>[q[0]*s,q[1]*s]);PATH.length=0;PATH.push(...loc);CPS.length=0;CPS.push(loc[1],loc[2],loc[3]);cp=0;sP=0;pos=[0,0];HD.value=0;demoEng=true;fbStart();btn.textContent='■ Stop';const t0=performance.now();
-demoT=setInterval(()=>{const t=(performance.now()-t0)/1000,f=clampn(t/DUR,0,1),sg=segs.find(x=>f*L<=x.s0+x.l)||segs[2],d=Math.min(f*L-sg.s0,sg.l),off=f<.2?0:f<.32?2.2*easeo((f-.2)/.12):f<.5?2.2:f<.62?2.2*(1-easeo((f-.5)/.12)):0;
-const p=[sg.a[0]+sg.dx*d+sg.dy*off,sg.a[1]+sg.dy*d-sg.dx*off],ang=Math.atan2(sg.dx,sg.dy)*180/Math.PI,hd=ang+40*Math.sin(Math.PI*clampn((f-.2)/.42,0,1))+50*Math.sin(Math.PI*clampn((f-.7)/.12,0,1));
-pos=[p[0]*s,p[1]*s];HD.value=Math.round(((hd%360)+360)%360)%360;draw(p,ang,hd);const e=$('sx-ds');if(e)e.textContent=state();const dg2=$('sx-grad');if(dg2&&!dg2.hidden&&des.car)drawSxGrad(dg2,des.R,des.car,sxPinFromWalk(des,G.lat,G.th,G.dc));if(f>=1)stop()},50)};
+demoT=setInterval(()=>{const t=(performance.now()-t0)/1000,f=clampn(t/DUR,0,1),sg=segs.find(x=>f*L<=x.s0+x.l)||segs[2],d=Math.min(f*L-sg.s0,sg.l),off=1.6*Math.sin(Math.PI*clampn((f-.08)/.28,0,1))-1.6*Math.sin(Math.PI*clampn((f-.72)/.24,0,1));
+const p=[sg.a[0]+sg.dx*d+sg.dy*off,sg.a[1]+sg.dy*d-sg.dx*off],ang=Math.atan2(sg.dx,sg.dy)*180/Math.PI,hd=ang+(f>.46&&f<.64?48*Math.sin(Math.PI*2*(f-.46)/.18):0);
+pos=[p[0]*s,p[1]*s];HD.value=Math.round(((hd%360)+360)%360)%360;draw(p,ang,hd);const e=$('sx-ds');if(e)e.textContent=state();if(hasG)drawSxGrad(dg,des.R,des.car,sigNow(off));if(f>=1)stop()},50)};
 btn.onclick=()=>{demoT?stop():start()};demoRestart=()=>{stopSpeak();start()}}
-const designNarr=des=>describe(des)+' Press play to hear how it changes as you move.';
+const designNarr=des=>describe(des)+' Press play to hear it as the dot walks, drifts off, and comes back.';
 function designVoice(des){speakLine(designNarr(des))}
-function introDemo(){const c=$('sx-dm'),g=c.getContext('2d'),cap=$('sx-dc'),btn=$('sx-dp'),grad=$('sx-grad');let si=0,t0=performance.now();
-const hear={r:()=>{[0,.6,1.2].forEach(a=>beep(660,.3,90,0,a));for(let i=0;i<9;i++)beep(660,.3,90,0,2.2+i*.15)},t:()=>[330,520,830,1320].forEach((f,i)=>beep(f,.3,200,0,i*.35)),v:()=>[.05,.15,.3,.6].forEach((v,i)=>beep(660,v,200,0,i*.35)),w:()=>[30,100,250,500].forEach((w,i)=>beep(660,.3,w,0,i*.8)),d:()=>[0,.3,.7,1].forEach((d,i)=>beep(660,.3,250,d,i*.45))};
+function introDemo(){const c=$('sx-dm'),g=c.getContext('2d'),cap=$('sx-dc'),btn=$('sx-dp'),grad=$('sx-grad'),bw=Math.max(.25,cfg.bw),s=cfg.sp,an=cfg.an,TAU=Math.PI*2;let si=0,t0=performance.now(),eng=null,hb=null;
+const CARS=[['r','Rate','Pulses repeat fastest when you are exactly on the path. They slow down as you drift, and stop completely at the edge of the shaded strip.','Carrier Rate. The pulses repeat fastest when you are exactly on the path. They slow down as you drift sideways, and stop completely at the edge of the shaded strip.'],
+['t','Tone','The pitch is highest when you are exactly on the path and drops as you drift. Beyond the strip it stays at its lowest pitch.','Carrier Tone. The pitch is highest when you are exactly on the path, and drops as you drift. Beyond the strip it stays at its lowest pitch.'],
+['v','Volume','The sound is loudest when you are exactly on the path, fades as you drift, and is silent beyond the strip.','Carrier Volume. The sound is loudest when you are exactly on the path, fades as you drift, and is silent beyond the strip.'],
+['w','Width','Each pulse is longest when you are exactly on the path, shorter as you drift, and gone beyond the strip.','Carrier Width. Each pulse is longest when you are exactly on the path, shorter as you drift, and gone beyond the strip.'],
+['d','Distortion','The sound is roughest when you are exactly on the path and becomes cleaner as you drift. Beyond the strip it is clean.','Carrier Distortion. The sound is roughest when you are exactly on the path, and becomes cleaner as you drift. Beyond the strip it is clean.']];
 const SL=[{t:'The test',b:'Walk on a marked floor grid from one side to the other, with two turns. You will not see the route. The phone guides you with sound or vibration. On the far side, stop and say “here”.',v:'Welcome. You will walk on a grid marked on the floor, from one side to the other. The route always has two turns. You will not see a map and you will not see the route. Your phone gives sound or vibration to guide you. When you reach a point on the far side, stop walking and say here.',k:'grid'},
-{t:'What we measure',b:'We note where you stop, how long it took, and a quick mental-effort rating after each walk. You try twelve designs with a short demo before each one — no practice walk. Confusing designs are useful data.',v:'We will note which point you stop on, how long you took, and you will give a short mental effort rating after each walk. You will try twelve different designs. Before each walk you will see a short demo. There is no practice walk. There are no right answers.',k:'title'},
-{t:'Referent — Path',b:'Feedback follows how far you are from the route. The path below stays fixed; only you move. On the graph, the peak is on-path (centre): strongest when you are on the line, weaker as you drift left or right.',v:'Referent Path. The phone reacts to how far you are from the route. The yellow path does not move. When you are on the path, feedback is strongest, at the centre of the graph. When you step to the side, the dot on the graph moves toward the edges and feedback gets weaker.',k:'refP',gr:'P',ref:'P'},
-{t:'Referent — Checkpoint',b:'Feedback is strongest when you point at the next turn (graph centre). Turn away and the dot moves to the edges.',v:'Referent Checkpoint. Feedback is strongest when you point at the next corner. The white dot on the graph sits in the centre when you aim correctly.',k:'refC',gr:'C',ref:'C'},
-{t:'Referent — Leading point',b:'Like checkpoint, but the target is a guide point ahead of you on the route. Centre of graph = pointing at it.',v:'Referent Leading point. Like checkpoint, but you point at a guide point slightly ahead of you. The graph dot is centred when you aim at it.',k:'refL',gr:'L',ref:'L'},
-{t:'Referent — Gap',b:'Feedback is about how close you are to the next checkpoint along the route — distance, not heading.',v:'Referent Gap. The phone tells you how close you are to the next checkpoint along the route. Near it, feedback is mild. Far away, it increases.',k:'refG',gr:'G',ref:'G'},
-{t:'Carriers',b:'Many designs change one property: rate, tone, volume, pulse width, or distortion. The next five slides show the graph for each.',v:'Carriers. Most pulse designs change one property: how fast pulses repeat, pitch, volume, pulse length, or roughness. The next slides show each one.',k:'title'},
-{t:'Carrier — Rate',b:'Rate uses a symmetric peak: strongest at the centre, weaker toward the edges. Watch the white dot slide on the graph.',v:'Carrier Rate. Pulses get faster toward the centre of the graph and slower toward the edges. Tap Play example to hear rate change.',k:'car',gr:'P',car:'r',carKey:'r',carDemo:1},
-{t:'Carrier — Tone',b:'Pitch is strongest at the centre of the graph and lower toward the edges.',v:'Carrier Tone. Pitch is highest in the centre and lower toward the edges.',k:'car',gr:'P',car:'t',carKey:'t',carDemo:1},
-{t:'Carrier — Volume',b:'Loudest at the centre, quieter toward the edges.',v:'Carrier Volume. Loudest at the centre, quieter toward the edges.',k:'car',gr:'P',car:'v',carKey:'v',carDemo:1},
-{t:'Carrier — Width',b:'Longest pulses at the centre, shorter toward the edges.',v:'Carrier Width. Pulses are longest at the centre and shorter toward the edges.',k:'car',gr:'P',car:'w',carKey:'w',carDemo:1},
-{t:'Carrier — Distortion',b:'Most rough at the centre, smoother toward the edges.',v:'Carrier Distortion. Most rough at the centre, smoother toward the edges.',k:'car',gr:'P',car:'d',carKey:'d',carDemo:1},
-{t:'Types',b:'Pulse: beeps or vibration bursts. Stream: continuous tone. Speech: spoken hints. Code: rhythm patterns for straight / left / right.',v:'Types. Pulse means short beeps or vibration. Stream is continuous sound. Speech tells you forward, left, or right. Code uses patterns for straight, left, or right. Audio uses the speaker. Haptic uses vibration.',k:'title'},
-{t:'Ready',b:'Hold the phone upright, walk slowly, stop on the far side and say “here”. Ask us any questions now.',v:'You are ready. Hold the phone upright, walk slowly, and stop when you are on a point on the far side. Say here when you stop. Ask us anything.',k:'title'}];
+{t:'What we measure',b:'We note where you stop, how long it took, and a quick mental-effort rating after each walk. You try twelve designs with a short demo before each one, and no practice walk. Confusing designs are useful data.',v:'We will note which point you stop on, how long you took, and you will give a short mental effort rating after each walk. You will try twelve different designs. Before each walk you will see a short demo. There is no practice walk. There are no right answers.',k:'title'},
+{t:'Referent: Path',b:'The yellow line is the path, and the shaded strip around it is where you get feedback. The white dot is you, drifting left and right. The graph above shows the same moment, and its white dot is you too. Feedback is strongest at the centre of the graph, when you are exactly on the path, and fades to nothing at the edge of the strip. Press Hear it to listen, using pulse rate.',v:'Referent Path. The yellow line is the path, and the shaded strip around it is where you get feedback. The white dot is you, drifting left and right. The dot on the graph is you too. Feedback is strongest at the centre of the graph, when you are exactly on the path, and fades to nothing at the edge of the strip.',k:'live',ref:'P',car:'r'},
+{t:'Referent: Checkpoint',b:'A checkpoint is the next turn, shown as a ring. Here you stand still and turn. The white arrow is where you point. The shaded wedge is the zone where you get feedback. When the arrow points straight at the ring, the graph dot is at the centre and feedback is strongest. Point left or right of it and the dot slides sideways and feedback fades.',v:'Referent Checkpoint. The ring is the next turn. You stand still and turn. The white arrow is where you point. The shaded wedge is the zone where you get feedback. When the arrow points straight at the ring, the graph dot is at the centre and feedback is strongest. Point left or right and the dot slides sideways and feedback fades.',k:'live',ref:'C',car:'r'},
+{t:'Referent: Leading point',b:'Like checkpoint, but the target is the orange guide point, which always stays two steps ahead of you along the path. You walk forward and it moves forward with you. Point at it for the strongest feedback, with the graph dot at the centre.',v:'Referent Leading point. Like checkpoint, but the target is the orange guide point, which always stays two steps ahead of you along the path. You walk forward and it moves forward with you. Point at it for the strongest feedback, with the graph dot at the centre.',k:'live',ref:'L',car:'r'},
+{t:'Referent: Gap',b:'Direction does not matter here. Only the distance to the next checkpoint (the ring) matters. As you walk towards it, the graph dot moves left, towards “at checkpoint”, and feedback gets stronger. Far from it, feedback is weak.',v:'Referent Gap. Direction does not matter here. Only the distance to the next checkpoint matters. As you walk towards the ring, the graph dot moves left, towards at checkpoint, and feedback gets stronger. Far from it, feedback is weak.',k:'live',ref:'G',car:'r'},
+{t:'Carriers',b:'A carrier is the property of the sound that carries the signal. The next five slides all use the Path example: the white dot drifts across the strip, and you hear the carrier change. Press Hear it on each.',v:'Carriers. A carrier is the property of the sound that carries the signal. The next five slides all use the Path example. The white dot drifts across the strip, and you hear the carrier change.',k:'title'}]
+.concat(CARS.map(x=>({t:'Carrier: '+x[1],b:x[2]+' The graph shows exactly this, and its white dot is the same dot you see drifting.',v:x[3],k:'live',ref:'P',car:x[0]})))
+.concat([{t:'Types',b:'Pulse: beeps or vibration bursts. Stream: continuous tone. Speech: spoken hints. Code: rhythm patterns for straight, left or right.',v:'Types. Pulse means short beeps or vibration. Stream is continuous sound. Speech tells you forward, left, or right. Code uses patterns for straight, left, or right. Audio uses the speaker. Haptic uses vibration.',k:'title'},
+{t:'Ready',b:'Hold the phone upright, walk slowly, stop on the far side and say “here”. Ask us any questions now.',v:'You are ready. Hold the phone upright, walk slowly, and stop when you are on a point on the far side. Say here when you stop. Ask us anything.',k:'title'}]);
 const GX=u=>119+u*22,GY=v=>275-v*22,SR=[[3,0],[3,5],[7,5],[7,11]];
 const grid=(path,dot)=>{g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#555';for(let i=0;i<12;i++)for(let j=0;j<12;j++){g.beginPath();g.arc(GX(i),GY(j),2,0,7);g.fill()}
 if(path){g.setLineDash([5,5]);g.strokeStyle='#8a6d00';g.lineWidth=3;g.beginPath();path.forEach((q,i)=>i?g.lineTo(GX(q[0]),GY(q[1])):g.moveTo(GX(q[0]),GY(q[1])));g.stroke();g.setLineDash([])}
 if(dot){g.fillStyle='#fff';g.beginPath();g.arc(GX(dot[0]),GY(dot[1]),7,0,7);g.fill()}};
-let introPin=.5;
-const X=u=>240+u*40,Y=v=>280-v*40,drawRef=(ref,t)=>{let pin=introPin;const w0=X(0),w=[w0,Y(2.2)],cp=[X(0),Y(6)],lp=[X(0),Y(4.6)];
-g.fillStyle='#111';g.fillRect(0,0,480,300);g.strokeStyle='#8a6d00';g.lineWidth=5;g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(0),Y(6));g.lineTo(X(2.5),Y(6));g.stroke();
-if(ref==='P'){
-const u=0.25+0.5*(Math.sin(t*.4)*.5+.5),off=1.1*Math.sin(t*.9),vLeg=6,hLeg=2.5,d=u*(vLeg+hLeg);let px=0,py;
-if(d<=vLeg){py=d}else{py=vLeg;px=d-vLeg}
-g.fillStyle='#fff';g.beginPath();g.arc(X(px+off*0.22),Y(py),7,0,7);g.fill();
-return Math.max(0,Math.min(1,.5+off/2.4*.5))}
-else if(ref==='G'){const pr=Math.max(.15,Math.min(1,.15+.85*(.5+.5*Math.sin(t*.5))));g.setLineDash([6,4]);g.strokeStyle='#ccc';g.lineWidth=2;g.beginPath();g.moveTo(w[0],w[1]);g.lineTo(cp[0],cp[1]);g.stroke();g.setLineDash([]);g.strokeStyle='#f5b800';g.lineWidth=3;g.beginPath();g.arc(cp[0],cp[1],10+18*pr,0,7);g.stroke();pin=1-pr*.85}
-else{const tg=ref==='L'?lp:cp,aim=.6*Math.sin(t*1.1);g.setLineDash([6,4]);g.strokeStyle='#ccc';g.lineWidth=2;g.beginPath();g.moveTo(w[0],w[1]);g.lineTo(tg[0],tg[1]);g.stroke();g.setLineDash([]);
-if(ref==='L'){g.fillStyle='#f5b800';g.beginPath();g.arc(lp[0],lp[1],8,0,7);g.fill()}else{g.strokeStyle='#f5b800';g.lineWidth=3;g.beginPath();g.arc(cp[0],cp[1],10,0,7);g.stroke()}
-const a=Math.atan2(tg[0]-w[0],w[1]-tg[1])+aim;g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(w[0],w[1]);g.lineTo(w[0]+Math.sin(a)*42,w[1]-Math.cos(a)*42);g.stroke();pin=Math.max(0,Math.min(1,.5-aim*(2/Math.PI)*.45))}
-g.fillStyle='#fff';g.beginPath();g.arc(w[0],w[1],7,0,7);g.fill();return pin};
-const scene=()=>{const s=SL[si],k=s.k,t=(performance.now()-t0)/1000;
-if(k==='grid'){const f=(t%9)/9*(5+4+6),sg=[5,4,6];let a=0,i=0;while(i<2&&f>a+sg[i]){a+=sg[i];i++}const d=Math.min(f-a,sg[i]),p0=SR[i],p1=SR[i+1],l=sg[i];grid(SR,[p0[0]+(p1[0]-p0[0])*d/l,p0[1]+(p1[1]-p0[1])*d/l]);g.fillStyle='#2fa76a';g.beginPath();g.arc(GX(3),GY(0),6,0,7);g.fill();g.fillStyle='#aaa';g.font='13px system-ui';g.textAlign='center';g.fillText('The dashed route is NOT shown to you',240,292)}
-else if(k==='refP'||k==='refC'||k==='refL'||k==='refG')introPin=drawRef(s.ref,t)||introPin;
-else if(k==='car'){g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#ddd';g.font='14px system-ui';g.textAlign='center';g.fillText('Tap Play example below',240,150);if(s.carDemo)introPin=(Math.sin(t*1.2)*.5+.5)}
-else{g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#f5b800';g.font='bold 22px system-ui';g.textAlign='center';g.fillText(s.t,240,150)}
-if(grad&&!grad.hidden&&s.gr)drawSxGrad(grad,s.gr,s.car,introPin)};
-const setGrad=s=>{if(!grad)return;if(!s.gr){grad.hidden=true;return}grad.hidden=false;introPin=(s.ref==='P'||s.k==='car')?0.5:introPin;drawSxGrad(grad,s.gr,s.car,introPin)};
-const show=()=>{const s=SL[si];t0=performance.now();setGrad(s);stopSpeak();
-let extra=s.carKey?`<div class="r" style="margin-top:8px"><button class="p" id="sx-hear" style="flex:2">▶ Play example</button></div>`:'';
-cap.innerHTML=`<b>${s.t}</b> <span class="m">(${si+1} of ${SL.length})</span><br>${s.b}${extra}`;btn.textContent=si<SL.length-1?'Next ▸':'Back to start';
-const hb=$('sx-hear');if(hb)hb.onclick=()=>{if(!ac)initAudio();ac.resume();hear[s.carKey]()};
-if(!ac)initAudio();ac.resume();speakLine(s.v)};
+/* live scenes: one signed deviation drives the picture, the graph dot and (when playing) the real engine */
+const X=u=>240+u*40,Y=v=>285-v*40;
+const stateFor=(sl,t)=>{const R=sl.ref;
+if(R==='P'){const lat=1.5*bw*Math.sin(t*TAU/6),v=.8+((t%9)/9)*4.4;return{sig:lat/bw,pos:[lat*s,v*s],hd:0,lat,v}}
+if(R==='C'){const e=40*Math.sin(t*TAU/6.5);return{sig:e/an,pos:[0,2*s],hd:e,e,v:2}}
+if(R==='L'){const v=.8+((t%10)/10)*2.8,e=40*Math.sin(t*TAU/6.5);return{sig:e/an,pos:[0,v*s],hd:e,e,v}}
+const v=.2+((t%10)/10)*5.1;return{sig:(6-v)/10,pos:[0,v*s],hd:0,v}};
+const route=()=>{g.strokeStyle='#8a6d00';g.lineWidth=5;g.lineJoin='round';g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(0),Y(6));g.lineTo(X(2.5),Y(6));g.stroke()};
+const ringAt=()=>{g.strokeStyle='#f5b800';g.lineWidth=3;g.beginPath();g.arc(X(0),Y(6),10,0,7);g.stroke()};
+const dotAt=(x,y)=>{g.fillStyle='#fff';g.beginPath();g.arc(x,y,7,0,7);g.fill()};
+const wedge=(x,y,len)=>{g.fillStyle='rgba(245,183,0,.16)';g.beginPath();g.moveTo(x,y);[-an,an].forEach(a=>{const r=a*Math.PI/180;g.lineTo(x+Math.sin(r)*len,y-Math.cos(r)*len)});g.closePath();g.fill()};
+const arrowAt=(x,y,deg,len)=>{const a=deg*Math.PI/180;g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.sin(a)*len,y-Math.cos(a)*len);g.stroke()};
+const cap1=txt=>{g.fillStyle='#f5b800';g.font='bold 13px system-ui';g.textAlign='left';g.fillText(txt,12,20)};
+const drawLive=(sl,st)=>{g.fillStyle='#111';g.fillRect(0,0,480,300);const R=sl.ref;
+if(R==='P'){g.fillStyle='rgba(245,183,0,.16)';g.fillRect(X(-bw),Y(6),2*bw*40,6*40);route();dotAt(X(st.lat),Y(st.v));cap1('Shaded strip = where you get feedback')}
+else if(R==='C'){route();ringAt();wedge(X(0),Y(2),Y(2)-Y(6));arrowAt(X(0),Y(2),st.e,90);dotAt(X(0),Y(2));cap1('Wedge = ±'+an+'° around the checkpoint')}
+else if(R==='L'){route();const oy=Y(st.v+2);wedge(X(0),Y(st.v),Y(st.v)-oy);g.fillStyle='#ff8a2a';g.beginPath();g.arc(X(0),oy,8,0,7);g.fill();arrowAt(X(0),Y(st.v),st.e,70);dotAt(X(0),Y(st.v));cap1('Orange guide point stays 2 steps ahead')}
+else{route();ringAt();g.setLineDash([6,4]);g.strokeStyle='#ccc';g.lineWidth=2;g.beginPath();g.moveTo(X(0),Y(st.v));g.lineTo(X(0),Y(6));g.stroke();g.setLineDash([]);dotAt(X(0),Y(st.v));cap1('Distance to checkpoint: '+(6-st.v).toFixed(1)+' steps')}};
+const startEng=sl=>{stopEng();stopSpeak();if(!ac)initAudio();ac.resume();applyParams();applyDesign({T:'A.Pulse',R:sl.ref,S1:sl.car,P1:'1',S2:'—',P2:'',SP:false,CV:'0110'});
+const L=[[0,0],[0,6],[2.5,6]].map(p=>[p[0]*s,p[1]*s]);PATH.length=0;PATH.push(...L);CPS.length=0;CPS.push(L[1],L[2],L[2]);cp=0;sP=0;pos=[0,0];HD.value=0;demoEng=true;fbStart();eng={t0:performance.now()}};
+const stopEng=()=>{if(demoEng){demoEng=false;restoreEngine()}eng=null};
+const hearLbl=sl=>`▶ Hear it (${CNAME[sl.car]})`;
+const setHear=on=>{const sl=SL[si];if(on){startEng(sl);t0=performance.now()}else stopEng();if(hb)hb.textContent=on?'■ Stop':hearLbl(sl)};
+const scene=()=>{const sl=SL[si],t=(performance.now()-t0)/1000;
+if(sl.k==='grid'){const f=(t%9)/9*(5+4+6),sg=[5,4,6];let a=0,i=0;while(i<2&&f>a+sg[i]){a+=sg[i];i++}const d=Math.min(f-a,sg[i]),p0=SR[i],p1=SR[i+1],l=sg[i];grid(SR,[p0[0]+(p1[0]-p0[0])*d/l,p0[1]+(p1[1]-p0[1])*d/l]);g.fillStyle='#2fa76a';g.beginPath();g.arc(GX(3),GY(0),6,0,7);g.fill();g.fillStyle='#aaa';g.font='13px system-ui';g.textAlign='center';g.fillText('The dashed route is NOT shown to you',240,292)}
+else if(sl.k==='live'){const st=stateFor(sl,t);drawLive(sl,st);if(eng){pos=st.pos;HD.value=Math.round(((st.hd%360)+360)%360)%360;if(performance.now()-eng.t0>24000)setHear(false)}drawSxGrad(grad,sl.ref,sl.car,st.sig)}
+else{g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#f5b800';g.font='bold 22px system-ui';g.textAlign='center';g.fillText(sl.t,240,150)}};
+const show=()=>{const sl=SL[si];stopEng();t0=performance.now();stopSpeak();grad.hidden=sl.k!=='live';
+cap.innerHTML=`<b>${sl.t}</b> <span class="m">(${si+1} of ${SL.length})</span><br>${sl.b}`+(sl.k==='live'?`<div class="r" style="margin-top:8px"><button class="p" id="sx-hear" style="flex:2">${hearLbl(sl)}</button></div>`:'');btn.textContent=si<SL.length-1?'Next ▸':'Back to start';
+hb=$('sx-hear');if(hb)hb.onclick=()=>setHear(!eng);
+if(!ac)initAudio();ac.resume();speakLine(sl.v)};
 btn.onclick=()=>{si=(si+1)%SL.length;show()};demoRestart=()=>{si=0;show()};show();demoT=setInterval(scene,50)}
 function showDemo(){stopDemo();const b=$('sx-vbox');b.style.aspectRatio='auto';b.style.display='block';b.style.textAlign='center';
 b.innerHTML='<canvas id="sx-grad" width="340" height="132" hidden></canvas><canvas id="sx-dm" width="480" height="300" style="width:100%;display:block;background:#111"></canvas><div class="ph" id="sx-dc"></div><div style="padding:0 12px 12px"><button class="p" id="sx-dp" style="width:100%"></button></div>';
@@ -819,10 +832,10 @@ $('sx-intro').onclick=openIntro;
 $('sx-sheet').onclick=()=>{$('sx-shw').dataset.on=$('sx-shw').dataset.on==='1'?'0':'1';renderSheet()};
 $('sx-plan').onclick=e=>{const b=e.target.closest('button');if(b)openPrep(+$('sx-user').value,+b.dataset.p,!!b.dataset.dry)};
 const MODES=['tt','dt','pl','ct','sc'],BT={dt:'dtb',pl:'plb',ct:'ctb',sc:'scb'},LB={dt:'Drift test (WebXR)',pl:'Pilot',ct:'Carrier test',sc:'Screening'};
-function showMode(k){MODES.forEach(i=>$(i).hidden=i!==k);for(const i in BT)$(BT[i]).textContent=k===i?'Back to tester':LB[i];if(running)$('go').click();if(k==='sc'){scr('home');renderHome()}}
+function showMode(k){MODES.forEach(i=>$(i).hidden=i!==k);for(const i in BT)$(BT[i]).textContent=k===i?'Back to tester':LB[i];if(running)$('go').click();window.ALLOWD1=k==='sc';if(k==='sc'){scr('home');renderHome()}}
 for(const i in BT)$(BT[i]).onclick=()=>showMode($(i).hidden?i:'tt');
 /* ---- self-test and demo hooks (open with #selftest or #demo=home|prep|dry|rec) ---- */
-function selfTest(){const out=[],ids=DES.map(d=>d.name);out.push(`catalogue: ${DES.length} designs, ${new Set(ids).size} unique ids`);
+function selfTest(){window.ALLOWD1=true;const out=[],ids=DES.map(d=>d.name);out.push(`catalogue: ${DES.length} designs, ${new Set(ids).size} unique ids`);
 const g=genPlan({users:16,seed:1,designs:DES.length,hap:DES.map(d=>d.mod==='haptic')});out.push(fmtRep(planReport(g,DES.map(d=>d.mod==='haptic'))));
 const s=.5,pts=[[3,0],[3,5],[7,5],[7,11]],loc=pts.map(p=>toLocal(p,[3,0],'N',s));applyParams();
 const probes=[[0,.7,0],[.25,.7,0],[.5,.7,0],[1.2,.7,0],[0,.7,60],[0,.7,150]];let bad=0;
@@ -832,7 +845,7 @@ const vary=new Set(sig).size>1;if(!vary)bad++;out.push((vary?'ok   ':'FLAT ')+d.
 PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0;out.push('flat designs: '+bad);
 const lg=toGrid(...toLocal([5,5],[3,0],'N',s),[3,0],'N',s),ls=toGrid(...toLocal([5,5],[8,11],'S',s),[8,11],'S',s);out.push('geometry round trip '+lg.map(x=>x.toFixed(2))+' / '+ls.map(x=>x.toFixed(2)));
 const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
-function demo(k){showMode('sc');const u=1;if(k==='intro'||k==='intro3'||k==='intro4'){openIntro();setTimeout(()=>{const n=k==='intro3'?2:k==='intro4'?3:0;for(let i=0;i<n;i++)$('sx-dp').click()},400)}
+function demo(k){showMode('sc');const u=1;if(/^intro\d*$/.test(k)){openIntro();setTimeout(()=>{const n=Math.max(0,(+k.slice(5)||1)-1);for(let i=0;i<n;i++)$('sx-dp').click()},400)}
 else if(k==='play'||k==='playend'){openPrep(u,1,false);setTimeout(()=>{$('sx-dp').click()},600)}
 else if(k==='prep'){openPrep(u,1,false);$('sx-cont').click()}else if(k==='dry'){openPrep(u,1,true);$('sx-cont').click();beginWalk()}
 else if(k==='rec'){S=mk(u,1,false);rows=[[0,0,0,0,0,0],[2,0,1,0,.1,0],[4,0.5,2,10,.3,0],[6,1,2.5,0,.3,0],[8,1,2.5,0,.3,0]];S.sum=summarise();S.trace=rows;openRec();landed=[4,11];tgOn=true;drawRec()}else if(k==='sheet'){$('sx-shw').dataset.on='1';renderSheet()}}
