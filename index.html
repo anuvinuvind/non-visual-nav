@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modality tester</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light;--bg:#f6f6f4;--fg:#18181a;--mut:#6b6b6e;--card:#fff;--ln:#dcdbd6;--ac:#c98a00}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#151517;--fg:#f1f1ef;--mut:#9a9a9c;--card:#212125;--ln:#37373d;--ac:#f5b700}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#151517;--fg:#f1f1ef;--mut:#9a9a9c;--card:#212125;--ln:#37373d;--ac:#f5b700}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}[hidden]{display:none!important}
+body{margin:0 auto;max-width:560px;padding:14px;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1{font-size:20px;margin:4px 0}.m{color:var(--mut);font-size:13px;margin:0 0 8px}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{grid-template-columns:repeat(3,1fr)}
+label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:3px}
+select,input,button{font:inherit;padding:8px;border:1px solid var(--ln);border-radius:8px;background:var(--card);color:var(--fg);min-width:0}
+select:disabled,input:disabled{opacity:.4}
+input[type=range]{padding:0}input[type=checkbox]{width:20px;height:20px;padding:0}
+button{cursor:pointer}button.p{background:var(--ac);color:#18181a;border-color:var(--ac);font-weight:600}
+#nm{font:600 17px ui-monospace,Menlo,Consolas,monospace;margin:12px 0 2px;overflow-wrap:anywhere}
+#id{font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--mut);overflow-wrap:anywhere}
+#w{color:#d9483d;font-size:13px;min-height:18px;margin:4px 0}
+canvas{display:block;width:100%;max-width:360px;margin:10px auto;background:var(--card);border:1px solid var(--ln);border-radius:10px;touch-action:none}
+#gr{max-width:100%;margin:8px 0 2px;cursor:pointer}
+#ro{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;color:var(--mut);margin:6px 0}
+.r{display:flex;gap:8px;margin:10px 0}.r button{flex:1}
+details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
+#dtb{margin-bottom:8px}
+#ov{display:none;position:fixed;inset:0;width:100%;height:100%;max-width:none;margin:0;border:0;border-radius:0;background:transparent;pointer-events:none}
+#xr.live{position:fixed;inset:0;background:transparent;color:#fff}
+#xr.live #ov{display:block}
+#xr.live .m{color:#ddd}
+#hud{margin:8px 0}
+#xr.live #hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:10px;right:10px;background:rgba(0,0,0,.6);border-radius:10px;padding:8px 10px}
+#xr.live #xb{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);margin:0}
+#xo,#xres{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;margin:4px 0}
+#pxr.live{position:fixed;inset:0;background:transparent;color:#fff}
+#phud{margin:8px 0}
+#pxr.live #phud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:10px;right:10px;background:rgba(0,0,0,.6);border-radius:10px;padding:10px;color:#fff}
+#pxr.live #pb{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);margin:0}
+#ptlx label{margin:10px 0}#ptlx input[type=range]{width:100%}
+#pov{display:none;position:fixed;inset:0;width:100%;height:100%;max-width:none;margin:0;border:0;border-radius:0;background:transparent;pointer-events:none}
+#pxr.live #pov{display:block}
+#cxr{margin:8px 0}
+#cres{display:none;max-width:360px;width:100%;height:auto;margin:8px auto;background:transparent;border:0}
+#cxr.live{position:fixed;inset:0;background:transparent;color:#fff}
+#cxr.live #chud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:10px;right:10px;background:rgba(0,0,0,.6);border-radius:10px;padding:10px;color:#fff}
+#cxr.live #cres{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,360px);margin:0}
+#cxr.live #cbtn{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);padding:18px;font-size:18px}
+/* screening test */
+#sc table{width:100%;border-collapse:collapse;font-size:13px}#sc td,#sc th{padding:5px 4px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:middle}
+#sc td button{padding:4px 8px;font-size:12px}#sc .done{color:#2fa76a}#sc .tg{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+#sx-vbox{background:#000;border-radius:10px;overflow:hidden;margin:8px 0;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#ddd;text-align:center}
+#sx-vbox video{width:100%;height:100%;object-fit:contain;background:#000}#sx-vbox .ph{padding:16px;font-size:14px}
+#sxr{margin:8px 0}#sx-dcv{max-width:100%;margin:8px 0}
+#sxr.live{position:fixed;inset:0;background:#000;color:#777;z-index:9;margin:0}
+#sxr.live #sx-dryw{display:none}
+#sxhud{font:13px/1.4 ui-monospace,Menlo,Consolas,monospace;color:#777;margin:6px 0}
+#sxr.live #sxhud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:12px;right:12px}
+#sxr.live #sxend{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);background:#1b1b1b;color:#777;border:1px solid #333;padding:18px;font-size:14px;margin:0}
+#sx-gc{max-width:360px;margin:6px auto}
+#sx-rs{width:100%}#sx-anch{font-size:11px;color:var(--mut);display:flex;justify-content:space-between;gap:4px}
+.sxbox{border:1px solid var(--ln);border-radius:10px;padding:10px;margin:8px 0;background:var(--card)}
+</style></head><body>
+<button id="dtb">Drift test (WebXR)</button> <button id="plb">Pilot</button> <button id="ctb">Carrier test</button> <button id="scb">Screening</button>
+<div id="tt">
+<h1>Modality tester</h1>
+<p class="m">Fixed path, simulated walker. Drag on the map to move, use the slider to turn.</p>
+<div class="g">
+<label>Type<select id="T"></select></label>
+<label>Referent<select id="R"><option>P</option><option>C</option><option>L</option><option>G</option></select></label>
+<label id="lca">Carrier<select id="CA"></select></label>
+<label>Code variant<select id="CV"><option>0110</option><option>1001</option></select></label>
+</div>
+<div id="gm"><canvas id="gr" width="340" height="132"></canvas><div class="m">Tap the left or right zone to cycle its profile.</div></div>
+<div id="nmode" class="g" hidden>
+<label>Level 1 (inner)<select id="S1"></select></label>
+<label>Polarity 1<select id="P1"><option value="">–</option><option>0</option><option>1</option></select></label>
+<label>Level 2 (outer)<select id="S2"></select></label>
+<label>Polarity 2<select id="P2"><option value="">–</option><option>0</option><option>1</option></select></label>
+<label>Spatial (CS)<input type="checkbox" id="SP"></label>
+</div>
+<button id="md" style="margin:8px 0">Switch to names mode</button>
+<div id="nm"></div><div id="id"></div><div id="w"></div>
+<div class="r"><button class="p" id="go">Start</button><button id="rs">Reset</button></div>
+<canvas id="cv" width="350" height="500"></canvas>
+<label>Heading <input type="range" id="hd" min="0" max="359" value="0"></label>
+<div id="ro"></div>
+<details><summary>Parameters</summary><div class="g g3" style="margin-top:8px">
+<label>Half-width m<input id="hw" type="number" step="0.1" value="0.5"></label>
+<label>Angle thr °<input id="an" type="number" step="5" value="30"></label>
+<label>Outer ramp m<input id="rp" type="number" step="0.1" value="1"></label>
+<label>G anchor (prev checkpoint at fraction of radius)<input id="ga" type="number" step="0.05" value="0.6"></label>
+<label>Strip fraction<input id="st" type="number" step="0.05" value="0.15"></label>
+<label>Lead distance m<input id="ld" type="number" step="0.1" value="1"></label>
+<label>Corner hold °<input id="ch" type="number" step="5" value="40"></label>
+<label>Angle ramp °<input id="arp" type="number" step="5" value="150"></label>
+</div></details>
+</div>
+<div id="dt" hidden>
+<h1>Drift test</h1>
+<div id="xr">
+<canvas id="ov"></canvas>
+<div id="hud"><div id="xs" class="m"></div><pre id="xo"></pre></div>
+<div class="r" id="xb"><button class="p" id="xgo">Start AR</button><button id="xor" disabled>Set origin</button><button id="xmk" disabled>Mark here</button><button id="xfi" disabled>Finish</button></div>
+</div>
+<div class="g"><label>Route<select id="xt"><option value="line">Line 10 m</option><option value="sq">Square 4 m</option><option value="study">Study path</option></select></label>
+<label>Phone height above floor m<input id="xh" type="number" step="0.1" value="1.2"></label></div>
+<p class="m" id="xi2"></p><p class="m" id="xi"></p>
+<pre id="xres"></pre><button id="xcp" hidden>Copy results</button>
+</div>
+<div id="pl" hidden>
+<h1>Pilot</h1>
+<div class="g">
+<label>User<select id="pu"></select></label>
+<label>Carrier<select id="pc"></select></label>
+<label>Map<select id="pm"></select></label>
+<label>Design (fixed)<input id="pd" disabled></label>
+<label>Phone height above floor m<input id="ph" type="number" step="0.1" value="1.2"></label>
+</div>
+<div id="psch"></div>
+<div id="pxr">
+<canvas id="pov"></canvas>
+<div id="phud" class="m"></div>
+<div class="r" id="pb"><button class="p" id="pstart" disabled>Start test</button><button id="pfin" disabled>Finish test</button><button id="pmap">View map: off</button></div>
+</div>
+<button class="p" id="prun" style="width:100%;margin:8px 0">Run test</button>
+<div id="pst" class="m"></div>
+<div id="ptlx" hidden></div>
+</div>
+<div id="ct" hidden>
+<h1>Carrier test</h1>
+<p class="m">Stationary path-localization: find the peak of a fixed spike profile (×1 on the active carrier) along a virtual centerline. Move the phone sideways only — no walking. Each user runs all 7 carriers in Latin-square order (14 users for balance). After you confirm a guess you see a symmetrical peak graph and accuracy %. No NASA-TLX.</p>
+<div class="g"><label>User<select id="cu"></select></label>
+<label>Gradient half-width m<input id="cw" type="number" step="0.05" value="0.5"></label></div>
+<canvas id="cgd" width="320" height="72" style="max-width:360px;margin:4px auto 8px" aria-label="Fixed spike profile along path"></canvas>
+<div class="r" style="margin-top:0"><button id="cdl">Download Excel (all users)</button><button id="cclr">Clear all data</button></div>
+<div id="cord"></div>
+<div id="cxr" hidden>
+<div id="chud" class="m"></div>
+<canvas id="cres" width="320" height="170"></canvas>
+<button class="p" id="cbtn" style="width:100%">Start</button>
+</div>
+<label id="csl" hidden>Simulated lateral position (cm)<input type="range" id="csr" min="-120" max="120" value="0"></label>
+<div class="r"><button class="p" id="crun">Run test (AR)</button><button id="csim">Run test (no AR, slider)</button><button id="cprac">Practice (AR)</button></div>
+<div id="cst" class="m"></div>
+</div>
+<div id="sc" hidden>
+<h1>Screening test</h1>
+<div id="sx-home">
+<p class="m">Grid walk, no map shown. Each participant walks 12 designs, then rates effort (RSME). Researcher notes the landing point and time. The assignment is generated once and stored on this device.</p>
+<div class="g"><label>Participant<select id="sx-user"></select></label><label>Next trial<input id="sx-nt" disabled></label></div>
+<div id="sx-plan"></div>
+<div class="r"><button id="sx-intro">Play intro video</button><button class="p" id="sx-next">Start next trial</button></div>
+<div class="r"><button id="sx-dry">Dry run (no AR)</button><button id="sx-sheet">Researcher sheet: off</button></div>
+<div id="sx-shw" hidden></div>
+<div class="r"><button id="sx-exp">Export Excel</button><button id="sx-clr">Clear all data</button></div>
+<details><summary>Settings and plan</summary>
+<div class="g g3" style="margin-top:8px">
+<label>Spacing m<input id="sx-sp" type="number" step="0.05" value="0.5"></label>
+<label>Band half-width (cells)<input id="sx-bw" type="number" step="0.25" value="1"></label>
+<label>Outer ramp (cells)<input id="sx-rp" type="number" step="0.25" value="2"></label>
+<label>Lead distance (cells)<input id="sx-ld" type="number" step="0.25" value="2"></label>
+<label>Checkpoint radius (cells)<input id="sx-cr" type="number" step="0.1" value="0.6"></label>
+<label>Time cap s<input id="sx-cap" type="number" step="5" value="90"></label>
+<label>Angle threshold °<input id="sx-an" type="number" step="5" value="30"></label>
+<label>Angle ramp °<input id="sx-ar" type="number" step="5" value="60"></label>
+<label>Corner hold °<input id="sx-ch" type="number" step="5" value="40"></label>
+<label>Clips folder<input id="sx-cl" value="clips/"></label>
+<label>Plan seed<input id="sx-sd" type="number" value="20261123"></label>
+<label>Participants<input id="sx-nu" type="number" value="16"></label>
+</div>
+<div class="r"><button id="sx-regen">Regenerate plan</button><button id="sx-save">Save settings</button></div>
+<pre id="sx-rep" class="m" style="white-space:pre-wrap"></pre>
+</details>
+<div id="sx-st" class="m"></div>
+</div>
+<div id="sx-prep" hidden>
+<div class="m" id="sx-pt"></div>
+<div id="sx-vbox"></div>
+<div class="r"><button id="sx-replay">Replay</button><button class="p" id="sx-cont">Continue</button></div>
+<div id="sx-arm" hidden class="sxbox"><div id="sx-ai"></div><div class="r"><button class="p" id="sx-go">Begin (AR)</button></div></div>
+<button id="sx-cancel" style="width:100%">Cancel</button>
+</div>
+<div id="sxr" hidden>
+<div id="sxhud"></div>
+<div id="sx-dryw"><canvas id="sx-dcv" width="340" height="340"></canvas>
+<label>Heading (° from forward)<input type="range" id="sx-hd" min="-180" max="180" value="0"></label>
+<div class="r"><button id="sx-pm">Show path: on</button><button id="sx-dbegin" class="p">Start dry run</button></div></div>
+<button id="sxend">Hold to end trial (researcher)</button>
+</div>
+<div id="sx-rec" hidden>
+<div class="m" id="sx-rt"></div>
+<div class="sxbox"><b>1. Landing point</b> <span class="m">tap the point the participant stopped on</span>
+<canvas id="sx-gc" width="340" height="340"></canvas>
+<div class="r"><button id="sx-tg">Show target: off</button><div id="sx-lp" style="flex:2;align-self:center"></div></div></div>
+<div class="sxbox"><b>2. Time (s)</b> <span class="m" id="sx-tm"></span>
+<input id="sx-time" type="number" step="0.1" style="width:100%"></div>
+<div class="sxbox"><b>3. Mental effort (RSME)</b> <span id="sx-rv" class="m">not set</span>
+<input type="range" id="sx-rs" min="0" max="150" value="0"><div id="sx-anch"></div></div>
+<div class="sxbox"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="sx-capd"> Hit time cap, participant never settled</label>
+<label>Notes<input id="sx-notes"></label></div>
+<div class="r"><button id="sx-disc">Discard trial</button><button class="p" id="sx-sv">Save trial</button></div>
+<div id="sx-rm" class="m" style="color:#d9483d"></div>
+</div>
+</div>
+<script>
+const q=i=>document.getElementById(i),fill=(s,a)=>{s.innerHTML='';a.forEach(x=>{const o=document.createElement('option');o.textContent=o.value=x;s.appendChild(o)})};
+const T=q('T'),R=q('R'),CA=q('CA'),S1=q('S1'),P1=q('P1'),S2=q('S2'),P2=q('P2'),CV=q('CV'),SP=q('SP'),HW=q('hw'),AN=q('an'),RP=q('rp'),GA=q('ga'),ST=q('st'),HD=q('hd'),cv=q('cv'),cx=cv.getContext('2d'),gr=q('gr'),gx=gr.getContext('2d');
+fill(T,['A.Pulse','A.Stream','A.Speech','A.Code','H.Pulse','H.Code']);
+const SY='N M R V T W D r v t w d'.split(' ');fill(S1,SY);fill(S2,['—'].concat(SY));S1.value='M';P1.value='1';
+const PATH=[[0,0],[0,4],[2.5,4]];for(let a=-81;a<=0;a+=9)PATH.push([2.5+2*Math.cos(a*Math.PI/180),6+2*Math.sin(a*Math.PI/180)]);PATH.push([4.5,8],[2.5,8]);
+const arcP=b=>[2.5+2*Math.sin(b*Math.PI/180),6-2*Math.cos(b*Math.PI/180)],CPS=[[0,4],arcP(30),arcP(60),[4.5,8],[2.5,8]];
+let pos=[0,0],cp=0,running=false,gmode=true,G={lat:0,th:0,dc:0},ac,pn,mst,NZ,sv,nxt=0,nxtD=0,lastSp='',lastT=0;
+const wrap=a=>((a+540)%360)-180,dirT=()=>/Speech|Code/.test(T.value),ALLOW=()=>T.value==='H.Pulse'?'rw':T.value==='A.Stream'?'vtd':'rvtwd',isC=s=>s!=='—'&&'rvtwd'.includes(s.toLowerCase());
+function pairFix(S,P){const s=S.value;if(s==='—'||s==='N'){P.value='';P.disabled=true;return}
+const l=s.toLowerCase(),low=s===l;P.disabled=false;[...P.options].forEach(o=>o.disabled=(o.value===''&&low)||(o.value==='1'&&l==='d'));
+if(P.selectedOptions[0].disabled)P.value=low?(l==='d'?'0':'1'):''}
+function derive(ca){for(const s of[S1.value,S2.value])if(isC(s)&&ca.includes(s.toUpperCase()))return s.toUpperCase();return ca.includes(CA.value)&&CA.value!=='S'?CA.value:ca[0]}
+function fix(){const d=dirT(),hap=T.value[0]==='H';[R,S1,P1,S2,P2,CA].forEach(e=>e.disabled=d);CV.disabled=!/Code/.test(T.value);SP.disabled=d||hap;if(d){[...R.options].forEach(o=>o.disabled=o.value==='P'||o.value==='G');if(R.value==='P'||R.value==='G')R.value='C';R.disabled=false;return}
+if(hap)SP.checked=false;
+if(SP.checked){if(R.value==='P')R.value='C';[...R.options].forEach(o=>o.disabled=o.value==='P');if(R.value==='G'){S1.value='v';P1.value='1'}else{S1.value='M';P1.value=''}S2.value='—';P2.value='';[S1,P1,S2,P2].forEach(e=>e.disabled=true)}else[...R.options].forEach(o=>o.disabled=false);
+const al=ALLOW();[S1,S2].forEach(S=>{[...S.options].forEach(o=>o.disabled=isC(o.value)&&!al.includes(o.value.toLowerCase()));if(S.selectedOptions[0].disabled)S.value='M'});
+if(!SP.checked){if(R.value==='G'){S2.value='—';P2.value=''}pairFix(S1,P1);pairFix(S2,P2);if(R.value==='G')S2.disabled=true}
+const ca=[...'RVTWDS'].filter(c=>c==='S'?!hap:al.includes(c.toLowerCase())),cur=SP.checked?'S':derive(ca);fill(CA,ca);CA.value=cur}
+CA.oninput=()=>{const c=CA.value;if(c==='S')SP.checked=true;else{if(SP.checked){SP.checked=false;S1.value='M';P1.value='';S2.value='—';P2.value=''}
+[S1,S2].forEach(S=>{const s=S.value;if(isC(s))S.value=s===s.toLowerCase()?c.toLowerCase():c})}fix();ui()};
+function names(){const t=T.value,b=t.toLowerCase().replace('.','_');
+if(dirT()){const f=R.value==='L'?'L':'C';return t==='A.Speech'?[t+'_'+f,b+'__'+f.toLowerCase()]:[t+'_'+f+CV.value,b+'__'+f.toLowerCase()+'__'+CV.value]}
+if(SP.checked)return R.value==='G'?[t+'_CS+Gv1',b+'__c__s__and__g__v1soft']:[t+'_'+R.value+'S',b+'__'+R.value.toLowerCase()+'__s'];
+const reg=(s,p)=>s+(s==='N'?'':p),rid=(s,p)=>{const l=s.toLowerCase();return s==='N'?'n':l+(p?p+(s===l?'soft':'hard'):'')},two=S2.value!=='—';
+return[t+'_'+R.value+reg(S1.value,P1.value)+(two?'|'+reg(S2.value,P2.value):''),b+'__'+R.value.toLowerCase()+'__'+rid(S1.value,P1.value)+(two?'__'+rid(S2.value,P2.value):'')]}
+function ui(){const n=names();q('nm').textContent=n[0];q('id').textContent=n[1];q('w').textContent=(T.value[0]==='H'&&!navigator.vibrate)?'Vibration API not available here':'';drawG()}
+const SL=['nil','mid','full','decay','growth','spike','valley','halfspike','halfvalley'];
+function dec(s,p){if(s==='—')return'hold';if(s==='N')return'nil';const l=s.toLowerCase();if(s==='M')return p===''?'mid':p==='1'?'halfspike':'halfvalley';if(s===l)return p==='0'?'growth':'decay';return p===''?'full':p==='1'?'spike':'valley'}
+function enc(st,c){const l=c.toLowerCase();return{nil:['N',''],mid:['M',''],full:[c,''],decay:[l,'1'],growth:[l,'0'],spike:[c,'1'],valley:[c,'0'],halfspike:['M','1'],halfvalley:['M','0'],hold:['—','']}[st]}
+function cyc(z){const S=z?S2:S1,P=z?P2:P1,c=CA.value;if(c==='S'||dirT())return;const list=z?['hold'].concat(SL):SL;let i=list.indexOf(dec(S.value,P.value));
+for(let k=0;k<list.length;k++){i=(i+1)%list.length;const st=list[i];if(c==='D'&&(st==='decay'||st==='spike'))continue;const e=enc(st,c);S.value=e[0];P.value=e[1];break}fix();ui()}
+gr.onclick=e=>{const r=gr.getBoundingClientRect();cyc(R.value==='G'?0:((e.clientX-r.left)/r.width*gr.width<150?0:1))};
+function drawG(){const css=getComputedStyle(document.documentElement),fg=css.getPropertyValue('--fg').trim(),mu=css.getPropertyValue('--mut').trim(),ak=css.getPropertyValue('--ac').trim(),W=gr.width,H=gr.height;
+gx.clearRect(0,0,W,H);gx.globalAlpha=(dirT()||SP.checked)?.3:1;
+const g=R.value==='G',zs=g?[[8,300]]:[[8,150],[150,300]],y=v=>96-v*70,s=.1,sh={nil:[[0,0],[1,0]],mid:[[0,.5],[1,.5]],full:[[0,1],[1,1]],decay:[[0,1],[1,0]],growth:[[0,0],[1,1]],spike:[[0,1],[s,1],[s,0],[1,0]],valley:[[0,0],[s,0],[s,1],[1,1]],halfspike:[[0,.5],[s,.5],[s,0],[1,0]],halfvalley:[[0,0],[s,0],[s,.5],[1,.5]]};
+gx.font='10px system-ui';gx.fillStyle=mu;gx.strokeStyle=mu;gx.lineWidth=.5;
+[['full',1],['mid',.5],['nil',0]].forEach(a=>{gx.beginPath();gx.moveTo(8,y(a[1]));gx.lineTo(300,y(a[1]));gx.stroke();gx.fillText(a[0],306,y(a[1])+3)});
+let e=0;gx.lineWidth=3;gx.lineJoin='round';
+(g?[0]:[0,1]).forEach(z=>{const st=z?dec(S2.value,P2.value):dec(S1.value,P1.value),pts=st==='hold'?[[0,e],[1,e]]:sh[st],a=zs[z][0],b=zs[z][1];
+gx.beginPath();gx.setLineDash(st==='hold'?[6,5]:[]);gx.strokeStyle=ak;pts.forEach((p,i)=>{const X=a+p[0]*(b-a),Y=y(p[1]);i?gx.lineTo(X,Y):gx.moveTo(X,Y)});gx.stroke();e=pts[pts.length-1][1]});
+gx.setLineDash([3,4]);gx.lineWidth=1;gx.strokeStyle=mu;gx.beginPath();const mx=g?8+Math.min(1,+GA.value)*292:150;gx.moveTo(mx,8);gx.lineTo(mx,104);gx.stroke();gx.setLineDash([]);
+const lb={P:['inside path','outside path'],C:['pointing at checkpoint','beyond threshold angle'],L:['pointing at orb','beyond threshold angle'],G:['near next checkpoint','beyond radius']}[R.value];
+gx.fillStyle=mu;gx.font='11px system-ui';if(g){gx.fillText('next checkpoint',10,122);gx.fillText('previous checkpoint',mx+4,122)}else{gx.fillText(lb[0],10,122);gx.fillText(lb[1],156,122)}gx.globalAlpha=1}
+q('md').onclick=()=>{gmode=!gmode;q('gm').hidden=q('lca').hidden=!gmode;q('nmode').hidden=gmode;q('md').textContent=gmode?'Switch to names mode':'Switch to graph mode'};
+q('nmode').hidden=true;
+document.querySelectorAll('select,input').forEach(e=>{if(e!==CA)e.oninput=()=>{fix();ui()}});fix();ui();
+function lev(sym,pol,s){const up=sym===sym.toUpperCase(),c=sym.toLowerCase(),st=+ST.value;
+if(c==='n')return null;
+if(c==='m'){if(pol==='')return{};return(pol==='1')===(s<=st)?{}:null}
+if(up){const o={[c]:1};if(pol==='')return o;return(pol==='1')===(s<=st)?o:null}
+const u=(pol||'1')==='1'?1-s:s;return{[c]:u}}
+function level(){const r=R.value;let x,thr,L;
+if(r==='P'){x=G.lat;thr=+HW.value;L=+RP.value}else if(r==='C'||r==='L'){x=Math.abs(G.th);thr=+AN.value;L=+q('arp').value}
+else{const pv=cp>0?CPS[cp-1]:[0,0],c=CPS[cp];x=G.dc;thr=Math.hypot(c[0]-pv[0],c[1]-pv[1])/(+GA.value);L=thr}
+const inner=x<=thr,s=inner?x/thr:Math.min(1,(x-thr)/L);G.reg=inner?1:2;
+if(inner)return lev(S1.value,P1.value,s);
+return S2.value==='—'?lev(S1.value,P1.value,1):lev(S2.value,P2.value,s)}
+function drive(o){if(!o)return{on:false};const d={on:true,rate:2,vol:.3,tone:660,width:.09,dist:0};
+for(const k in o){const u=o[k];
+if(k==='r'){d.rate=u*8;if(d.rate<.3)d.on=false}
+else if(k==='v'){d.vol=u*.7;if(u<.03)d.on=false}
+else if(k==='t')d.tone=330*Math.pow(4,u);
+else if(k==='w'){d.width=u*.5;if(u<.03)d.on=false}
+else if(k==='d')d.dist=u}
+return d}
+function initAudio(){ac=new(window.AudioContext||window.webkitAudioContext)();pn=ac.createStereoPanner?ac.createStereoPanner():null;mst=ac.createGain();mst.connect(pn||ac.destination);if(pn)pn.connect(ac.destination);
+NZ=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const a=NZ.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
+function beep(f,vol,dur,dist,at=0){const t=ac.currentTime+at,d=Math.max(dur,30)/1000,o=ac.createOscillator(),n=ac.createBufferSource(),og=ac.createGain(),ng=ac.createGain(),g=ac.createGain();
+o.type='triangle';o.frequency.value=f;n.buffer=NZ;n.loop=true;og.gain.value=1-dist;ng.gain.value=dist*.6;
+o.connect(og);n.connect(ng);og.connect(g);ng.connect(g);g.connect(mst);
+g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.setValueAtTime(vol,t+d-.008);g.gain.linearRampToValueAtTime(0,t+d);
+o.start(t);n.start(t);o.stop(t+d+.02);n.stop(t+d+.02)}
+function pulse(d,hap){const now=performance.now();
+if(!d.on){nxt=0;if(hap&&navigator.vibrate)navigator.vibrate(0);return}
+if(now<nxt)return;const per=1000/d.rate,dur=Math.max(25,Math.min(d.width*1000,per));nxt=now+per;
+if(hap){if(navigator.vibrate)navigator.vibrate(dur)}else beep(d.tone,d.vol,dur,d.dist)}
+function stream(d){if(!ac)return;if(!sv){const o1=ac.createOscillator(),o2=ac.createOscillator(),n=ac.createBufferSource(),og=ac.createGain(),ng=ac.createGain(),g=ac.createGain();
+n.buffer=NZ;n.loop=true;o1.connect(og);o2.connect(og);n.connect(ng);og.connect(g);ng.connect(g);g.connect(mst);g.gain.value=0;o1.start();o2.start();n.start();sv={o1,o2,og,ng,g}}
+const t=ac.currentTime;sv.g.gain.setTargetAtTime(d.on?d.vol:0,t,.05);sv.o1.frequency.setTargetAtTime(d.tone,t,.05);sv.o2.frequency.setTargetAtTime(d.tone*1.5,t,.05);sv.og.gain.setTargetAtTime(.5*(1-d.dist),t,.05);sv.ng.gain.setTargetAtTime(d.dist*.6,t,.05)}
+function directive(t,th){const a=Math.abs(th),now=performance.now();
+if(t==='A.Speech'){const p=a<15?'forward':a>135?'turn around':(a<45?'slight ':'')+(th<0?'left':'right');
+if(p!==lastSp||now-lastT>4000){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(p));lastSp=p;lastT=now}return}
+if(now<nxtD)return;nxtD=now+1700;
+const mk=90,gp=110,mg=Math.round(150+Math.max(0,Math.min(1,(a-15)/120))*450);let seq;
+if(a<15)seq=[mk];else if(a>135)seq=[1000];else seq=((CV.value==='0110')===(th<0))?[mk,gp,mg]:[mg,gp,mk];
+if(t==='H.Code'){if(navigator.vibrate)navigator.vibrate(seq)}else{let at=0;seq.forEach((v,i)=>{if(i%2===0)beep(660,.3,v,0,at/1000);at+=v})}}
+function stopAll(){if(navigator.vibrate)navigator.vibrate(0);if(window.speechSynthesis)speechSynthesis.cancel();if(sv)sv.g.gain.setTargetAtTime(0,ac.currentTime,.05)}
+function segD(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy)));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
+let sP=0;
+function lead(){const n=PATH.length,cum=[0];for(let i=1;i<n;i++)cum.push(cum[i-1]+Math.hypot(PATH[i][0]-PATH[i-1][0],PATH[i][1]-PATH[i-1][1]));
+const proj=(lo,hi)=>{let b=1e9,bs=0;for(let i=0;i<n-1;i++){if(cum[i+1]<lo||cum[i]>hi)continue;const a=PATH[i],e=PATH[i+1],dx=e[0]-a[0],dy=e[1]-a[1],l2=dx*dx+dy*dy,t=Math.max(0,Math.min(1,((pos[0]-a[0])*dx+(pos[1]-a[1])*dy)/l2)),d=Math.hypot(pos[0]-a[0]-t*dx,pos[1]-a[1]-t*dy);if(d<b){b=d;bs=cum[i]+t*Math.sqrt(l2)}}return[b,bs]};
+let w=proj(sP-.5,sP+3);if(w[0]>1.5){const g=proj(-1,1e9);if(g[0]<w[0]-1)w=g}
+sP=w[1];let s=Math.min(cum[n-1],sP+(+q('ld').value));const ch=+q('ch').value;
+if(ch>0)for(let i=1;i<n-1;i++){if(cum[i]<=sP)continue;const a1=Math.atan2(PATH[i][0]-PATH[i-1][0],PATH[i][1]-PATH[i-1][1]),a2=Math.atan2(PATH[i+1][0]-PATH[i][0],PATH[i+1][1]-PATH[i][1]);
+if(Math.abs(wrap((a2-a1)*180/Math.PI))>ch){if(cum[i]<s&&Math.hypot(PATH[i][0]-pos[0],PATH[i][1]-pos[1])>.4)s=cum[i];break}}
+for(let i=0;i<n-1;i++)if(s<=cum[i+1]||i===n-2){const t=Math.max(0,Math.min(1,(s-cum[i])/(cum[i+1]-cum[i])));return[PATH[i][0]+t*(PATH[i+1][0]-PATH[i][0]),PATH[i][1]+t*(PATH[i+1][1]-PATH[i][1])]}}
+function tick(){let d0=1e9;for(let i=0;i<PATH.length-1;i++)d0=Math.min(d0,segD(pos,PATH[i],PATH[i+1]));
+const c=CPS[cp],dc=Math.hypot(c[0]-pos[0],c[1]-pos[1]);if(dc<(window.CPR||.5)&&cp<CPS.length-1)cp++;
+const tg=(R.value==='L'||window.PILOT)?lead():c,th=wrap(Math.atan2(tg[0]-pos[0],tg[1]-pos[1])*180/Math.PI-(+HD.value));G={lat:d0,th,dc,tg};
+const t=T.value,hap=t[0]==='H';let txt='directive';
+if(dirT()){if(running)directive(t,th)}
+else{const lv=level(),d=(window.FD=drive(SP.checked&&R.value!=='G'?{}:lv));txt=d.on?`rate ${d.rate.toFixed(1)}/s  vol ${d.vol.toFixed(2)}  tone ${d.tone|0} Hz  width ${(d.width*1000)|0} ms  dist ${d.dist.toFixed(2)}`:'silent';
+if(running){if(pn)pn.pan.value=(SP.checked&&!hap)?Math.sin(th*Math.PI/180):0;if(/Stream/.test(t))stream(d);else pulse(d,hap)}}
+if(sv&&ac&&(!running||!/Stream/.test(t)))sv.g.gain.setTargetAtTime(0,ac.currentTime,.05);
+q('ro').textContent=`offset ${d0.toFixed(2)} m   bearing ${th.toFixed(0)}°   to checkpoint ${cp+1}: ${dc.toFixed(1)} m   region ${G.reg||'–'}\n${txt}`;draw()}
+const K=()=>cv.width/8;
+function path(){const k=K();cx.beginPath();PATH.forEach((p,i)=>{const x=(p[0]+1.5)*k,y=cv.height-(p[1]+1)*k;i?cx.lineTo(x,y):cx.moveTo(x,y)})}
+function draw(){const css=getComputedStyle(document.documentElement),fg=css.getPropertyValue('--fg').trim(),ak=css.getPropertyValue('--ac').trim(),k=K(),P=p=>[(p[0]+1.5)*k,cv.height-(p[1]+1)*k];
+cx.clearRect(0,0,cv.width,cv.height);cx.lineJoin=cx.lineCap='round';
+cx.strokeStyle=ak;cx.globalAlpha=.25;cx.lineWidth=2*(+HW.value)*k;path();cx.stroke();
+cx.globalAlpha=1;cx.lineWidth=1;cx.setLineDash([5,5]);cx.strokeStyle=fg;path();cx.stroke();cx.setLineDash([]);
+CPS.forEach((c,i)=>{const[x,y]=P(c);cx.beginPath();cx.arc(x,y,7,0,7);cx.fillStyle=i===cp?ak:'transparent';cx.fill();cx.strokeStyle=fg;cx.stroke()});
+const[x,y]=P(pos),h=HD.value*Math.PI/180;cx.fillStyle=fg;cx.beginPath();cx.arc(x,y,7,0,7);cx.fill();
+if(R.value==='L'&&G.tg){const[ox,oy]=P(G.tg);cx.beginPath();cx.arc(ox,oy,9,0,7);cx.fillStyle='#e0489a';cx.fill()}
+cx.beginPath();cx.moveTo(x,y);cx.lineTo(x+Math.sin(h)*28,y-Math.cos(h)*28);cx.lineWidth=3;cx.stroke();cx.lineWidth=1}
+cv.onpointerdown=cv.onpointermove=e=>{if(e.type==='pointermove'&&!e.buttons)return;const r=cv.getBoundingClientRect(),k=K();
+pos=[(e.clientX-r.left)/r.width*cv.width/k-1.5,(cv.height-(e.clientY-r.top)/r.height*cv.height)/k-1]};
+q('go').onclick=()=>{if(!running){if(!ac)initAudio();ac.resume();running=true;q('go').textContent='Stop'}else{running=false;stopAll();q('go').textContent='Start'}};
+q('rs').onclick=()=>{pos=[0,0];cp=0;sP=0};
+setInterval(tick,30);
+</script>
+<script>
+(()=>{
+const $=i=>document.getElementById(i),xr=$('xr'),ov=$('ov'),oc=ov.getContext('2d');
+const SPATH=PATH.slice(),SCPS=CPS.slice(),useRoute=(p,c)=>{PATH.length=0;PATH.push(...p);CPS.length=0;CPS.push(...c);cp=0;sP=0},ROUTES={line:{p:[[0,0],[0,10]],m:[[0,2.5],[0,5],[0,7.5],[0,10],[0,0]]},sq:{p:[[0,0],[0,4],[4,4],[4,0],[0,0]],m:[[0,4],[4,4],[4,0],[0,0]]},study:{p:SPATH,m:SCPS.concat([[0,0]])}};
+let sess,ref,GL,o=null,RT=ROUTES.line,samples=[],marks=[],last=null,dist=0,lost=0,frames=0,lastS=0,cur=null,mk=0;
+const env=()=>{const ua=navigator.userAgent,b=['SamsungBrowser','EdgA','OPR','Firefox','Chrome'].map(k=>new RegExp(k+'/[\\d.]+').exec(ua)).find(Boolean);return location.protocol+' secure:'+isSecureContext+' '+(b?b[0]:'unknown browser')};
+const tf=(M,x,y,z)=>[M[0]*x+M[4]*y+M[8]*z+M[12],M[1]*x+M[5]*y+M[9]*z+M[13],M[2]*x+M[6]*y+M[10]*z+M[14],M[3]*x+M[7]*y+M[11]*z+M[15]];
+const info=()=>{const r=ROUTES[$('xt').value];$('xi2').textContent='Tape marks (right, forward) in m from the start mark: '+r.m.map(e=>'('+e[0].toFixed(1)+', '+e[1].toFixed(1)+')').join(' then ')+'. Walk them in order, holding the phone over the tape.'};
+$('xt').oninput=info;info();
+$('dtb').onclick=()=>{const on=$('dt').hidden;$('dt').hidden=!on;$('tt').hidden=on;$('dtb').textContent=on?'Back to tester':'Drift test (WebXR)';if(on&&running)$('go').click()};
+(async()=>{let m='navigator.xr: '+(navigator.xr?'yes':'NO');if(navigator.xr){try{m+=', immersive-ar: '+(await navigator.xr.isSessionSupported('immersive-ar')?'supported':'NOT supported')}catch(e){m+=', check failed: '+e.message}}
+$('xi').textContent=m+' | '+env()+'. Needs Chrome on an ARCore phone. If it fails from a downloaded file or inside another app, serve it over HTTPS or localhost and open it in Chrome.'})();
+$('xgo').onclick=async()=>{if(sess){sess.end();return}
+const errs=[];for(const cfg of[{requiredFeatures:['local'],optionalFeatures:['dom-overlay'],domOverlay:{root:xr}},{}]){try{sess=await navigator.xr.requestSession('immersive-ar',cfg);if(!cfg.domOverlay)errs.push('started WITHOUT overlay, so the HUD is hidden');break}catch(e){sess=null;errs.push((cfg.domOverlay?'full':'minimal')+' config: '+e.name+': '+e.message)}}
+if(!sess){$('xs').textContent='Could not start. '+errs.join(' | ')+' | '+env();return}
+if(errs.length)alert(errs.join('\n'));
+const c=document.createElement('canvas');GL=c.getContext('webgl',{xrCompatible:true});if(GL.makeXRCompatible)await GL.makeXRCompatible();
+sess.updateRenderState({baseLayer:new XRWebGLLayer(sess,GL)});ref=await sess.requestReferenceSpace('local');
+o=null;cur=null;samples=[];marks=[];mk=0;dist=0;last=null;lost=0;frames=0;$('xres').textContent='';$('xcp').hidden=true;
+xr.classList.add('live');ov.width=innerWidth;ov.height=innerHeight;$('xgo').textContent='End AR';$('xor').disabled=false;
+sess.addEventListener('end',()=>{xr.classList.remove('live');sess=null;if(running)$('go').click();useRoute(SPATH,SCPS);pos=[0,0];$('xgo').textContent='Start AR';['xor','xmk','xfi'].forEach(i=>$(i).disabled=true)});
+sess.requestAnimationFrame(frame)};
+$('xor').onclick=()=>{if(!cur)return;let fx=cur.fw[0],fz=cur.fw[2];const n=Math.hypot(fx,fz);if(n<.3){$('xs').textContent='Hold the phone upright, facing along the route';return}
+fx/=n;fz/=n;o={p:cur.pp,f:[fx,fz],r:[-fz,fx],y:cur.pp[1]-(+$('xh').value)};RT=ROUTES[$('xt').value];useRoute(RT.p,RT.m.slice(0,-1));samples=[];marks=[];mk=0;dist=0;last=null;lost=0;frames=0;$('xmk').disabled=$('xfi').disabled=false;if(!running)$('go').click()};
+$('xmk').onclick=()=>{if(!o||!cur||!cur.uv||mk>=RT.m.length)return;const e=RT.m[mk],u=cur.uv[0],v=cur.uv[1];marks.push({e,u,v,err:Math.hypot(u-e[0],v-e[1]),dist});mk++};
+$('xfi').onclick=()=>{report();if(sess)sess.end()};
+$('xcp').onclick=()=>{try{navigator.clipboard.writeText($('xres').textContent)}catch(e){}};
+function frame(t,f){sess.requestAnimationFrame(frame);GL.bindFramebuffer(GL.FRAMEBUFFER,sess.renderState.baseLayer.framebuffer);GL.clearColor(0,0,0,0);GL.clear(GL.COLOR_BUFFER_BIT);
+const pose=f.getViewerPose(ref);frames++;if(!pose){lost++;return}if(pose.emulatedPosition)lost++;
+const m=pose.transform.matrix;cur={pp:[m[12],m[13],m[14]],fw:[-m[8],-m[9],-m[10]]};
+if(o){const dx=cur.pp[0]-o.p[0],dz=cur.pp[2]-o.p[2],u=dx*o.r[0]+dz*o.r[1],v=dx*o.f[0]+dz*o.f[1];
+if(last)dist+=Math.hypot(u-last[0],v-last[1]);last=[u,v];let lat=1e9;for(let i=0;i<RT.p.length-1;i++)lat=Math.min(lat,segD([u,v],RT.p[i],RT.p[i+1]));
+cur.uv=[u,v];cur.lat=lat;pos=[u,v];const fu=cur.fw[0]*o.r[0]+cur.fw[2]*o.r[1],fv=cur.fw[0]*o.f[0]+cur.fw[2]*o.f[1];if(Math.hypot(fu,fv)>.2)HD.value=Math.round(((Math.atan2(fu,fv)*180/Math.PI)%360+360)%360);if(t-lastS>200){lastS=t;samples.push([dist,lat])}}
+draw2(pose.views[0]);hud()}
+function draw2(view){oc.clearRect(0,0,ov.width,ov.height);if(!o)return;const V=view.transform.inverse.matrix,Pm=view.projectionMatrix,W=ov.width,H=ov.height;
+const sc=(u,v)=>{const a=tf(V,o.p[0]+u*o.r[0]+v*o.f[0],o.y,o.p[2]+u*o.r[1]+v*o.f[1]),c=tf(Pm,a[0],a[1],a[2]);return c[3]>.05?[(c[0]/c[3]*.5+.5)*W,(1-(c[1]/c[3]*.5+.5))*H]:null};
+oc.lineWidth=4;oc.strokeStyle='#f5b700';oc.beginPath();let pen=false;RT.p.forEach(p=>{const s=sc(p[0],p[1]);if(!s){pen=false;return}pen?oc.lineTo(s[0],s[1]):oc.moveTo(s[0],s[1]);pen=true});oc.stroke();
+RT.m.forEach((e,i)=>{const s=sc(e[0],e[1]);if(!s)return;oc.beginPath();oc.arc(s[0],s[1],10,0,7);oc.fillStyle=i<mk?'#2fa76a':'#fff';oc.fill()});if(R.value==='L'&&G.tg){const s=sc(G.tg[0],G.tg[1]);if(s){oc.beginPath();oc.arc(s[0],s[1],14,0,7);oc.fillStyle='#e0489a';oc.fill()}}}
+function hud(){$('xo').textContent=(o&&cur.uv)?`u ${cur.uv[0].toFixed(2)}  v ${cur.uv[1].toFixed(2)}  offset ${cur.lat.toFixed(2)} m\nwalked ${dist.toFixed(1)} m  marks ${mk}/${RT.m.length}  lost ${lost}/${frames}\n${names()[0]}`:'';
+$('xs').textContent=!o?'Stand on the start mark, phone upright, facing along the route, then Set origin.':mk<RT.m.length?'Next mark: ('+RT.m[mk][0].toFixed(1)+', '+RT.m[mk][1].toFixed(1)+') m':'All marks done. Tap Finish.'}
+function report(){const lat=samples.map(s=>s[1]),mean=lat.reduce((a,b)=>a+b,0)/Math.max(1,lat.length),mx=Math.max(0,...lat);
+let t=`Route ${$('xt').value} | walked ${dist.toFixed(1)} m | offset mean ${mean.toFixed(2)} m, max ${mx.toFixed(2)} m | tracking lost ${lost}/${frames} frames\n\nmark  expected(u,v)  measured(u,v)  error  walked  err/walked\n`;
+marks.forEach((k,i)=>{t+=`${i+1}  (${k.e[0].toFixed(1)},${k.e[1].toFixed(1)})  (${k.u.toFixed(2)},${k.v.toFixed(2)})  ${k.err.toFixed(2)} m  ${k.dist.toFixed(1)} m  ${(100*k.err/Math.max(k.dist,.01)).toFixed(1)}%\n`});
+const L=marks[marks.length-1],E=RT.m[marks.length-1];if(L&&E&&E[0]===0&&E[1]===0)t+=`\nClosure error ${L.err.toFixed(2)} m over ${L.dist.toFixed(1)} m (${(100*L.err/Math.max(L.dist,.01)).toFixed(1)}%)`;
+$('xres').textContent=t;$('xcp').hidden=false}
+})();
+</script>
+<script>
+(()=>{
+/*CORE*/
+const CN=['Rate','Tone','Volume','Width','Distortion','Spatial'],CL=['R','T','V','W','D','S'],W6=[0,1,5,2,4,3],SIG=[0, 1, 2, 4, 5, 3];
+const ORDER=u=>W6.map(x=>(x+u)%6),MAPOF=(u,c)=>(c+SIG[u])%6;
+const SPEC=[[3,2,2,1,1.5,1],[4,2.5,2,2,2,1],[4,2.5,2,2,2,-1],[3,3,2.5,1.5,2.5,1],[3,3,2.5,1.5,2.5,-1],[5,2,1.5,2.5,2,1],[5,2,1.5,2.5,2,-1]];
+function mapPts(s){const a=s[0],b=s[1],r=s[2],c=s[3],d=s[4],m=s[5],P=[[0,0],[0,a],[b,a]];for(let k=1;k<=10;k++){const t=-Math.PI/2+k*Math.PI/20;P.push([b+r*Math.cos(t),a+r+r*Math.sin(t)])}const x=b+r,y=a+r;P.push([x,y+c],[x-d,y+c]);return P.map(p=>[m*p[0],p[1]])}
+const plen=P=>P.reduce((a,p,i)=>i?a+Math.hypot(p[0]-P[i-1][0],p[1]-P[i-1][1]):a,0);
+const HEAD=['t_s','x_m','y_m','heading_deg','lateral_dev_m','bearing_err_deg','orb_x_m','orb_y_m','progress_s_m','fb_on','rate_hz','vol','tone_hz','width_ms','dist','tracking_lost','raw_x','raw_z'];
+function metrics(rows,P,hw){const L=plen(P),e=rows.findIndex(r=>r[8]>=L-.5),R=e<0?rows:rows.slice(0,e+1),lat=R.map(r=>r[4]),mean=a=>a.reduce((x,y)=>x+y,0)/Math.max(1,a.length);let w=0,ex=0;
+for(let i=1;i<R.length;i++){w+=Math.hypot(R[i][1]-R[i-1][1],R[i][2]-R[i-1][2]);if(lat[i]>hw&&lat[i-1]<=hw)ex++}
+return{reached_end:e>=0?'yes':'no',completion_time_s:e>=0?R[e][0]:'',recorded_duration_s:rows.length?rows[rows.length-1][0]:0,mean_abs_dev_m:+mean(lat).toFixed(3),rms_dev_m:+Math.sqrt(mean(lat.map(x=>x*x))).toFixed(3),max_dev_m:Math.max(0,...lat),pct_time_in_band:+(100*lat.filter(x=>x<=hw).length/Math.max(1,lat.length)).toFixed(1),path_exits:ex,walked_m:+w.toFixed(2),map_length_m:+L.toFixed(2),detour_ratio:+(w/Math.max(.01,R.length?R[R.length-1][8]:L)).toFixed(3),samples:rows.length}}
+function buildWB(X,meta,rows,P,tlx,hw){const m=metrics(rows,P,hw),W=X.utils.book_new(),add=(n,a)=>X.utils.book_append_sheet(W,X.utils.aoa_to_sheet(a),n),raw=tlx.reduce((a,t)=>a+t[1],0)/tlx.length;
+add('Meta',[['field','value']].concat(Object.entries(meta)));add('Summary',[['metric','value']].concat(Object.entries(m)));
+add('NASA-TLX',[['subscale','rating_0_100']].concat(tlx,[['Raw TLX (mean of 6)',+raw.toFixed(1)]]));add('Samples',[HEAD].concat(rows));add('Map',[['x_m','y_m']].concat(P.map(p=>[+p[0].toFixed(3),+p[1].toFixed(3)])));return W}
+/*ENDCORE*/
+const $=i=>document.getElementById(i),pxr=$('pxr'),dtb=$('dtb'),plb=$('plb'),P0=PATH.slice(),C0=CPS.slice();
+let sess,ref,GL,o=null,cur=null,plan=null,rows=[],t0=null,lastR=0,lostF=0,frames=0,hd=0,rec=false,iso='';
+const pov=$('pov'),oc=pov.getContext('2d'),tf=(M,x,y,z)=>[M[0]*x+M[4]*y+M[8]*z+M[12],M[1]*x+M[5]*y+M[9]*z+M[13],M[2]*x+M[6]*y+M[10]*z+M[14],M[3]*x+M[7]*y+M[11]*z+M[15]];let showMap=false;
+const use=(p,c)=>{PATH.length=0;PATH.push(...p);CPS.length=0;CPS.push(...c);cp=0;sP=0};
+const show=k=>{['tt','dt','pl'].forEach(i=>$(i).hidden=i!==k);dtb.textContent=k==='dt'?'Back to tester':'Drift test (WebXR)';plb.textContent=k==='pl'?'Back to tester':'Pilot';if(running)$('go').click()};
+dtb.onclick=()=>show($('dt').hidden?'dt':'tt');plb.onclick=()=>show($('pl').hidden?'pl':'tt');
+const opt=(s,a)=>a.forEach((t,i)=>{const e=document.createElement('option');e.value=i;e.textContent=t;s.appendChild(e)});
+opt($('pu'),[1,2,3,4,5,6].map(i=>'User '+i));opt($('pc'),CN);opt($('pm'),['Practice map'].concat([1,2,3,4,5,6].map(i=>'Map '+i)));
+const dn=c=>c==='S'?'A.Pulse_LS':'A.Pulse_PM1|'+c.toLowerCase()+'0';
+const done=()=>{try{return JSON.parse(localStorage.getItem('pdone')||'[]')}catch(e){return[]}};
+const mark=k=>{try{const d=done();if(!d.includes(k))d.push(k);localStorage.setItem('pdone',JSON.stringify(d))}catch(e){}};
+const sync=()=>{$('pd').value=dn(CL[+$('pc').value])};
+function sched(){const u=+$('pu').value,d=done();$('psch').innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse">'+ORDER(u).map((c,i)=>`<tr><td>${i+1}</td><td>${CN[c]}</td><td>Map ${MAPOF(u,c)+1}</td><td>${d.includes(u+'-'+c)?'done':''}</td><td><button data-c="${c}" data-m="0">Practice</button> <button data-c="${c}" data-m="${MAPOF(u,c)+1}">Run</button></td></tr>`).join('')+'</table>'}
+$('psch').onclick=e=>{const b=e.target.closest('button');if(!b)return;$('pc').value=b.dataset.c;$('pm').value=b.dataset.m;sync()};
+$('pu').oninput=sched;$('pc').oninput=sync;$('pm').oninput=sync;sched();sync();
+function design(ci){const c=CL[ci],set=(i,v)=>{$(i).value=v};T.value='A.Pulse';R.value=c==='S'?'L':'P';set('an',30);set('arp',60);set('st',.15);set('ld',1);set('ch',40);set('hw',.5);set('rp',1);
+if(c==='S'){SP.checked=true}else{SP.checked=false;S1.value='M';P1.value='1';S2.value=c.toLowerCase();P2.value='0'}fix();ui()}
+$('prun').onclick=async()=>{if(sess)return;if(!navigator.xr){$('pst').textContent='WebXR is not available in this browser';return}
+const u=+$('pu').value,ci=+$('pc').value,mi=+$('pm').value,P=mapPts(SPEC[mi]);plan={u,ci,mi,prac:mi===0,P,seq:ORDER(u).indexOf(ci)+1};
+try{sess=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local'],optionalFeatures:['dom-overlay'],domOverlay:{root:pxr}})}catch(e){sess=null;$('pst').textContent='Could not start: '+e.name+': '+e.message;return}
+const c=document.createElement('canvas');GL=c.getContext('webgl',{xrCompatible:true});if(GL.makeXRCompatible)await GL.makeXRCompatible();
+sess.updateRenderState({baseLayer:new XRWebGLLayer(sess,GL)});ref=await sess.requestReferenceSpace('local');
+o=null;cur=null;rows=[];rec=false;lostF=0;frames=0;showMap=false;$('pmap').textContent='View map: off';pov.width=innerWidth;pov.height=innerHeight;$('ptlx').hidden=true;pxr.classList.add('live');$('pstart').disabled=false;$('pfin').disabled=true;$('prun').disabled=true;
+sess.addEventListener('end',onEnd);sess.requestAnimationFrame(frame)};
+$('pstart').onclick=()=>{if(!cur||!sess)return;let fx=cur.fw[0],fz=cur.fw[2];const n=Math.hypot(fx,fz);if(n<.3){$('phud').textContent='Hold the phone upright, facing forward';return}
+fx/=n;fz/=n;o={p:cur.pp,f:[fx,fz],r:[-fz,fx],y:cur.pp[1]-(+$('ph').value)};design(plan.ci);window.PILOT=true;use(plan.P,[plan.P[plan.P.length-1]]);pos=[0,0];rows=[];t0=null;lastR=0;lostF=0;frames=0;rec=!plan.prac;iso=new Date().toISOString();
+if(!running)$('go').click();$('pstart').disabled=true;$('pfin').disabled=false};
+$('pfin').onclick=()=>{if(sess)sess.end()};
+function onEnd(){window.PILOT=false;pxr.classList.remove('live');sess=null;o=null;if(running)$('go').click();use(P0,C0);$('prun').disabled=false;
+if(plan&&!plan.prac&&rows.length){tlxForm();$('pst').textContent='Run finished. Please complete the NASA-TLX.'}else $('pst').textContent=plan&&plan.prac?'Practice finished (nothing recorded).':'Session ended.'}
+function frame(t,f){sess.requestAnimationFrame(frame);GL.bindFramebuffer(GL.FRAMEBUFFER,sess.renderState.baseLayer.framebuffer);GL.clearColor(0,0,0,0);GL.clear(GL.COLOR_BUFFER_BIT);
+const pose=f.getViewerPose(ref);frames++;if(!pose){lostF++;return}const em=pose.emulatedPosition?1:0;lostF+=em;
+const m=pose.transform.matrix;cur={pp:[m[12],m[13],m[14]],fw:[-m[8],-m[9],-m[10]]};
+if(o){const dx=cur.pp[0]-o.p[0],dz=cur.pp[2]-o.p[2],u=dx*o.r[0]+dz*o.r[1],v=dx*o.f[0]+dz*o.f[1],fu=cur.fw[0]*o.r[0]+cur.fw[2]*o.r[1],fv=cur.fw[0]*o.f[0]+cur.fw[2]*o.f[1];
+pos=[u,v];if(Math.hypot(fu,fv)>.2){hd=((Math.atan2(fu,fv)*180/Math.PI)%360+360)%360;HD.value=Math.round(hd)}
+if(rec){if(t0===null)t0=t;if(t-lastR>=33){lastR=t;const d=window.FD||{},tg=G.tg||[0,0],r=(x,n)=>+x.toFixed(n);
+rows.push([r((t-t0)/1000,3),r(u,3),r(v,3),r(hd,1),r(G.lat,3),r(G.th,1),r(tg[0],3),r(tg[1],3),r(sP,2),d.on?1:0,r(d.rate||0,2),r(d.vol||0,2),Math.round(d.tone||0),Math.round((d.width||0)*1000),r(d.dist||0,2),em,r(cur.pp[0],3),r(cur.pp[2],3)])}}}
+drawMap(pose.views[0]);$('phud').textContent=!o?'Stand at the start with the phone upright, facing forward, then press Start test.':plan.prac?'Practice (not recorded)':'Recording '+((t-(t0===null?t:t0))/1000).toFixed(0)+' s'}
+$('pmap').onclick=()=>{showMap=!showMap;$('pmap').textContent='View map: '+(showMap?'on':'off')};
+function drawMap(view){oc.clearRect(0,0,pov.width,pov.height);if(!showMap||!o||!plan)return;const V=view.transform.inverse.matrix,Pm=view.projectionMatrix,W=pov.width,H=pov.height,Q=plan.P;
+const sc=(u,v)=>{const a=tf(V,o.p[0]+u*o.r[0]+v*o.f[0],o.y,o.p[2]+u*o.r[1]+v*o.f[1]),c=tf(Pm,a[0],a[1],a[2]);return c[3]>.05?[(c[0]/c[3]*.5+.5)*W,(1-(c[1]/c[3]*.5+.5))*H]:null};
+oc.lineWidth=4;oc.lineJoin='round';oc.strokeStyle='#f5b700';oc.beginPath();let pen=false;Q.forEach(p=>{const s=sc(p[0],p[1]);if(!s){pen=false;return}pen?oc.lineTo(s[0],s[1]):oc.moveTo(s[0],s[1]);pen=true});oc.stroke();
+const e=sc(Q[Q.length-1][0],Q[Q.length-1][1]);if(e){oc.beginPath();oc.arc(e[0],e[1],10,0,7);oc.fillStyle='#fff';oc.fill()}}
+const TL=[['Mental demand','How mentally demanding was the task?','Very low','Very high'],['Physical demand','How physically demanding was the task?','Very low','Very high'],['Temporal demand','How hurried or rushed was the pace of the task?','Very low','Very high'],['Performance','How successful were you in accomplishing what you were asked to do?','Perfect','Failure'],['Effort','How hard did you have to work to accomplish your level of performance?','Very low','Very high'],['Frustration','How insecure, discouraged, irritated, stressed, and annoyed were you?','Very low','Very high']];
+function tlxForm(){$('ptlx').innerHTML='<h2 style="font-size:16px;margin:10px 0">NASA-TLX</h2>'+TL.map((t,i)=>`<label>${t[0]}: ${t[1]} <b id="to${i}">50</b><input type="range" min="0" max="100" step="5" value="50" id="tl${i}"><span>${t[2]} to ${t[3]}</span></label>`).join('')+'<label>Notes<input id="pn"></label><button class="p" id="psv" style="width:100%;margin-top:8px">Save and download Excel</button>';
+$('ptlx').oninput=e=>{if(e.target.id.startsWith('tl'))$('to'+e.target.id.slice(2)).textContent=e.target.value};$('psv').onclick=save;$('ptlx').hidden=false}
+function save(){const tlx=TL.map((t,i)=>[t[0],+$('tl'+i).value]),hw=+$('hw').value,name=`pilot_U${plan.u+1}_${CL[plan.ci]}_map${plan.mi}`;
+const meta={user:'User '+(plan.u+1),carrier:CN[plan.ci],design:dn(CL[plan.ci]),referent:CL[plan.ci]==='S'?'L':'P',orb_presented:CL[plan.ci]==='S'?'yes':'no',outer_ramp_m:+$('rp').value,map:'Map '+plan.mi,sequence_position:plan.seq,started:iso,angle_threshold_deg:+$('an').value,angle_ramp_deg:+$('arp').value,strip_fraction:+$('st').value,lead_m:+$('ld').value,corner_hold_deg:+$('ch').value,half_width_m:hw,tracking_lost_frames:lostF,total_frames:frames,notes:$('pn').value,device:navigator.userAgent};
+if(window.XLSX){XLSX.writeFile(buildWB(XLSX,meta,rows,plan.P,tlx,hw),name+'.xlsx')}
+else{const csv=[HEAD.join(',')].concat(rows.map(r=>r.join(','))).concat(tlx.map(t=>'# TLX,'+t[0]+','+t[1])).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=name+'.csv';a.click();alert('Excel library did not load, so a CSV was saved instead.')}
+mark(plan.u+'-'+plan.ci);$('ptlx').hidden=true;$('pst').textContent='Saved '+name;sched()}
+})();
+</script>
+<script>
+(()=>{
+/*CORE2*/
+const CARS=[['A.Pulse','R','Rate'],['A.Pulse','T','Tone'],['A.Pulse','V','Volume'],['A.Pulse','W','Width'],['A.Pulse','D','Distortion'],['H.Pulse','R','Rate'],['H.Pulse','W','Width']],W7=[0,1,6,2,5,3,4],OFFS=[-.7,.35,-.2,.6,-.45,.25,.7];
+const nm=c=>c[0]+'_P'+c[1].toLowerCase()+'1';
+const ORD=u=>{const k=(u-1)%14,row=i=>W7.map(x=>(x+i)%7);return k<7?row(k):row(k-7).reverse()};
+function stats(a){const n=a.length,m=a.reduce((x,y)=>x+y,0)/Math.max(1,n),sd=n>1?Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/(n-1)):0;return[n,+m.toFixed(2),+sd.toFixed(2)]}
+function buildCWB(X,recs){const W=X.utils.book_new(),add=(n,a)=>X.utils.book_append_sheet(W,X.utils.aoa_to_sheet(a),n);
+add('Meta',[['field','value'],['test','carrier_peak_localization'],['referent','P'],['profile','spike ×1 on carrier'],['carriers',CARS.map(c=>nm(c)).join(', ')],['users',14],['latin_square','W7 rotated per user'],['exported',new Date().toISOString()],['device',navigator.userAgent]]);
+const H=['user','trial_position','type','carrier','design','half_width_m','start_offset_m','confirmed_x_m','signed_error_m','abs_error_cm','accuracy_pct','time_s','path_length_m','reversals','date'];
+add('Results',[H].concat(recs.map(r=>[r.user,r.pos,r.type,r.carrier,r.name,r.W,r.o,r.xc,r.err,r.abs_cm,r.acc,r.time,r.plen,r.rev,r.date])));
+const g={};recs.forEach(r=>{(g[r.name]=g[r.name]||[]).push(r)});
+add('By carrier',[['design','n','mean_accuracy_pct','sd_accuracy','mean_abs_error_cm','sd_abs_error_cm','mean_time_s','mean_reversals']].concat(Object.keys(g).map(k=>{const a=g[k],ac=stats(a.map(r=>r.acc)),er=stats(a.map(r=>r.abs_cm)),t=stats(a.map(r=>r.time)),rv=stats(a.map(r=>r.rev));return[k,ac[0],ac[1],ac[2],er[1],er[2],t[1],rv[1]]})));
+add('Orders',[['user','position','design']].concat([...new Set(recs.map(r=>r.user))].sort((a,b)=>a-b).flatMap(u=>ORD(u).map((ci,i)=>[u,i+1,nm(CARS[ci])]))));
+add('Traces',[['user','design','t_s','x_rel_to_peak_m']].concat(recs.flatMap(r=>r.trace.map(p=>[r.user,r.name,p[0],p[1]]))));return W}
+/*ENDCORE2*/
+const $=i=>document.getElementById(i),cxr=$('cxr'),cres=$('cres'),g2=cres.getContext('2d'),cgd=$('cgd'),g3=cgd.getContext('2d'),P0=PATH.slice(),C0=CPS.slice();
+function drawCGrad(){const w=cgd.width,h=cgd.height,L=16,R=w-16,base=h-14,top=12,X=x=>L+(x+.5)*(R-L);g3.clearRect(0,0,w,h);const css=getComputedStyle(document.documentElement),fg=css.getPropertyValue('--fg').trim(),ak=css.getPropertyValue('--ac').trim(),mu=css.getPropertyValue('--mut').trim();
+g3.strokeStyle=mu;g3.beginPath();g3.moveTo(L,base);g3.lineTo(R,base);g3.stroke();g3.strokeStyle=ak;g3.lineWidth=2;g3.beginPath();g3.moveTo(X(-.5),base);g3.lineTo(X(0),top);g3.lineTo(X(.5),base);g3.stroke();g3.fillStyle=mu;g3.font='10px system-ui';g3.fillText('−W',L,base+11);g3.fillText('peak',X(0)-11,top+3);g3.fillText('+W',R-16,base+11)}
+drawCGrad();
+let sess=null,ref,GL,ar=false,sim=false,ax=null,st='idle',trial=0,prac=false,user=1,order=[],W=.5,o=0,t0=0,buf=[],trace=[],lastTr=0,cur=null,p0=0,tp=0,mem=[];
+const load=()=>{try{return JSON.parse(localStorage.getItem('ctest')||'[]')}catch(e){return mem}};
+const save=a=>{mem=a;try{localStorage.setItem('ctest',JSON.stringify(a))}catch(e){}};
+const modes=['tt','dt','pl','ct'],btn={dt:$('dtb'),pl:$('plb'),ct:$('ctb')},lab={dt:'Drift test (WebXR)',pl:'Pilot',ct:'Carrier test'};
+const show=k=>{modes.forEach(i=>$(i).hidden=i!==k);for(const i in btn)btn[i].textContent=k===i?'Back to tester':lab[i];if(running)$('go').click()};
+for(const i in btn)btn[i].onclick=()=>show($(i).hidden?i:'tt');
+for(let u=1;u<=14;u++){const e=document.createElement('option');e.value=u;e.textContent='User '+u;$('cu').appendChild(e)}
+function renderOrd(){const u=+$('cu').value,a=load(),done=new Set(a.filter(r=>r.user===u).map(r=>r.name));
+$('cord').innerHTML='<table style="width:100%;font-size:13px;border-collapse:collapse">'+ORD(u).map((ci,i)=>`<tr><td>${i+1}</td><td>${nm(CARS[ci])}</td><td>${done.has(nm(CARS[ci]))?'done':''}</td></tr>`).join('')+'</table><p class="m">Stored on this device: '+a.length+' trials from '+new Set(a.map(r=>r.user)).size+' users</p>'}
+$('cu').oninput=renderOrd;$('csr').oninput=null;$('cw').oninput=null;renderOrd();
+const hud=t=>{$('chud').textContent=t},setBtn=(s,l)=>{st=s;$('cbtn').textContent=l};
+const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s[s.length>>1]};
+function setCar(c){T.value=c[0];R.value='P';S1.value=c[1].toLowerCase();P1.value='1';S2.value='—';P2.value='';SP.checked=false;ST.value=.15;RP.value=1;$('hw').value=W;PATH.length=0;PATH.push([0,-20],[0,20]);CPS.length=0;CPS.push([0,20]);cp=0;sP=0;fix();ui()}
+function stopFb(){if(running)$('go').click();PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0}
+function upd(x){if(st!=='run')return;const d=x-o,now=performance.now();pos=[d,0];buf.push([now,d]);if(now-lastTr>=100){lastTr=now;trace.push([+((now-t0)/1000).toFixed(2),+d.toFixed(3)])}}
+function frame(t,f){sess.requestAnimationFrame(frame);GL.bindFramebuffer(GL.FRAMEBUFFER,sess.renderState.baseLayer.framebuffer);GL.clearColor(0,0,0,0);GL.clear(GL.COLOR_BUFFER_BIT);
+const pose=f.getViewerPose(ref);if(!pose)return;const m=pose.transform.matrix;cur={pp:[m[12],m[13],m[14]],fw:[-m[8],-m[9],-m[10]]};if(ax)upd(cur.pp[0]*ax[0]+cur.pp[2]*ax[1]-p0)}
+setInterval(()=>{if(sim&&!ar)upd(+$('csr').value/100-p0)},30);
+async function run(practice,useSim){if(sess||st!=='idle')return;prac=practice;sim=useSim;user=+$('cu').value;W=+$('cw').value;order=practice?[CARS[1]]:ORD(user).map(i=>CARS[i]);trial=0;ax=null;
+cxr.hidden=false;$('csl').hidden=!useSim;
+if(!useSim){if(!navigator.xr){$('cst').textContent='WebXR is not available in this browser';cxr.hidden=true;return}
+try{sess=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local'],optionalFeatures:['dom-overlay'],domOverlay:{root:cxr}})}catch(e){sess=null;cxr.hidden=true;$('cst').textContent='Could not start AR: '+e.name+': '+e.message;return}
+const c=document.createElement('canvas');GL=c.getContext('webgl',{xrCompatible:true});if(GL.makeXRCompatible)await GL.makeXRCompatible();sess.updateRenderState({baseLayer:new XRWebGLLayer(sess,GL)});ref=await sess.requestReferenceSpace('local');
+ar=true;cxr.classList.add('live');sess.addEventListener('end',()=>{cxr.classList.remove('live');cxr.hidden=true;sess=null;ar=false;stopFb();st='idle';renderOrd()});sess.requestAnimationFrame(frame)}
+cres.style.display='none';setBtn('ready','Start');hud((practice?'Practice. ':'')+'Trial 1 of '+order.length+'. Stand still, facing forward, phone held out in front of you. Press Start.')}
+$('crun').onclick=()=>run(false,false);$('cprac').onclick=()=>run(true,false);$('csim').onclick=()=>run(false,true);
+function startTrial(){if(ar&&!ax){const n=Math.hypot(cur?cur.fw[0]:0,cur?cur.fw[2]:0);if(!cur||n<.3){hud('Hold the phone upright, facing forward, then press Start');return}const fx=cur.fw[0]/n,fz=cur.fw[2]/n;ax=[-fz,fx]}
+if(ar)p0=cur.pp[0]*ax[0]+cur.pp[2]*ax[1];else p0=+$('csr').value/100;
+const c=order[trial],sg=user%2?1:-1;o=(prac?.5:OFFS[trial])*W*sg;setCar(c);buf=[];trace=[];lastTr=0;t0=performance.now();cres.style.display='none';
+if(!running)$('go').click();setBtn('run','Confirm');hud('Trial '+(trial+1)+'/'+order.length+' — '+nm(c)+'\nSlide sideways to find strongest feedback (path peak). Hold position, then Confirm.')}
+function confirmT(){tp=performance.now();if(running)$('go').click();const w=buf.filter(b=>b[0]>=tp-500&&b[0]<=tp-100).map(b=>b[1]),dc=w.length?med(w):(buf.length?buf[buf.length-1][1]:-o),
+acc=Math.max(0,100*(1-Math.abs(dc)/W)),time=(tp-t0)/1000;let plen=0,rev=0,dirn=0,ex=buf.length?buf[0][1]:0;
+for(let i=1;i<buf.length&&buf[i][0]<=tp;i++){const d=buf[i][1];plen+=Math.abs(d-buf[i-1][1]);if(d-ex>.02){if(dirn===-1)rev++;dirn=1;ex=d}else if(ex-d>.02){if(dirn===1)rev++;dirn=-1;ex=d}else if(dirn===1&&d>ex)ex=d;else if(dirn===-1&&d<ex)ex=d}
+const c=order[trial];if(!prac){const a=load();a.push({user,pos:trial+1,type:c[0],carrier:c[2],name:nm(c),W,o:+o.toFixed(3),xc:+(o+dc).toFixed(3),err:+dc.toFixed(3),abs_cm:+(Math.abs(dc)*100).toFixed(1),acc:+acc.toFixed(1),time:+time.toFixed(2),plen:+plen.toFixed(2),rev,date:new Date().toISOString(),trace});save(a)}
+drawRes(dc,acc,Math.abs(dc)*100);cres.style.display='block';setBtn('shown',trial<order.length-1?'Next carrier':'Finish');hud('Result for '+nm(c)+': accuracy '+acc.toFixed(0)+'%')}
+function nextT(){if(trial<order.length-1){trial++;cres.style.display='none';setBtn('ready','Start');hud('Trial '+(trial+1)+' of '+order.length+'. Press Start when ready.');return}
+cres.style.display='none';hud('All done. Thank you!');if(sess)sess.end();else{cxr.hidden=true;$('csl').hidden=true;stopFb();st='idle';renderOrd()}}
+$('cbtn').onpointerdown=e=>{e.preventDefault();if(st==='ready')startTrial();else if(st==='run')confirmT();else if(st==='shown')nextT()};
+function drawRes(dc,acc,cm){const w=cres.width,h=cres.height,L=20,Rr=w-20,base=h-38,top=28,X=d=>L+(d+W)/(2*W)*(Rr-L);
+g2.clearRect(0,0,w,h);g2.fillStyle='rgba(20,20,22,.9)';g2.fillRect(0,0,w,h);
+g2.strokeStyle='#888';g2.lineWidth=1;g2.beginPath();g2.moveTo(L,base);g2.lineTo(Rr,base);g2.stroke();
+g2.strokeStyle='#f5b700';g2.lineWidth=3;g2.beginPath();g2.moveTo(X(-W),base);g2.lineTo(X(0),top);g2.lineTo(X(W),base);g2.stroke();
+g2.fillStyle='#fff';g2.beginPath();g2.arc(X(0),top,6,0,7);g2.fill();g2.font='11px system-ui';g2.fillText('peak',X(0)-12,top-9);
+const cd=Math.max(-W,Math.min(W,dc));g2.strokeStyle='#e0489a';g2.lineWidth=3;g2.beginPath();g2.moveTo(X(cd),top+8);g2.lineTo(X(cd),base);g2.stroke();g2.fillStyle='#e0489a';g2.fillText('you',X(cd)-9,base+14);
+g2.fillStyle='#fff';g2.font='13px system-ui';g2.fillText('Error '+cm.toFixed(1)+' cm   Accuracy '+acc.toFixed(0)+'%',L,h-8)}
+$('cdl').onclick=()=>{const a=load();if(!a.length){$('cst').textContent='No data stored yet';return}
+if(window.XLSX){XLSX.writeFile(buildCWB(XLSX,a),'carrier_test_all_users.xlsx');$('cst').textContent='Downloaded '+a.length+' trials'}
+else{const csv=['user,trial,design,accuracy_pct,abs_error_cm,time_s'].concat(a.map(r=>[r.user,r.pos,r.name,r.acc,r.abs_cm,r.time].join(','))).join('\n'),l=document.createElement('a');l.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));l.download='carrier_test_all_users.csv';l.click();alert('Excel library did not load, so a CSV summary was saved instead.')}};
+$('cclr').onclick=()=>{if(confirm('Delete all stored carrier-test data on this device?')){save([]);renderOrd()}};
+})();
+</script>
+<script>
+/* ===================== SCREENING TEST (grid walk) ===================== */
+(()=>{
+/*CORE3*/
+const COLS='ABCDEFGHIJKL',K=12,LAST=11;
+const ptl=(x,y)=>COLS[Math.max(0,Math.min(LAST,Math.round(x)))]+Math.max(0,Math.min(LAST,Math.round(y)));
+function rng32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const shuf=(a,r)=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const ri=(r,lo,hi)=>lo+Math.floor(r()*(hi-lo+1));
+/* candidate designs: 20 audio pulse, 6 other audio, 8 haptic pulse, 2 haptic code */
+function catalogCfg(){const L=[],add=(T,R,S1,P1,S2,P2,x)=>L.push(Object.assign({T,R,S1,P1,S2,P2,SP:false,CV:'0110'},x||{}));
+for(const R of['P','C','L','G'])for(const c of['r','t','v','w','d'])R==='G'?add('A.Pulse',R,c,'1','—','',{car:c}):add('A.Pulse',R,'M','1',c,'0',{car:c});
+for(const c of['v','t','d'])add('A.Stream','P','M','1',c,'0',{car:c});
+add('A.Speech','C','M','','—','');add('A.Speech','L','M','','—','');add('A.Code','L','M','','—','',{CV:'0110'});
+for(const R of['P','C','L','G'])for(const c of['r','w'])R==='G'?add('H.Pulse',R,c,'1','—','',{car:c}):add('H.Pulse',R,'M','1',c,'0',{car:c});
+add('H.Code','C','M','','—','',{CV:'0110'});add('H.Code','L','M','','—','',{CV:'0110'});return L}
+/* geometry: 12x12 points (11x11 cells). Start and end sit on opposite edge rows, two turns (one left, one right) */
+const DELTAS=[[2,3],[4,5],[6,7,8]];
+function makeMap(r,cls,sign){const dl=DELTAS[cls][ri(r,0,DELTAS[cls].length-1)],i=sign>0?ri(r,1,10-dl):ri(r,1+dl,10);return{i,j:i+sign*dl,k:ri(r,2,9),sign,delta:dl,cls}}
+const mapPts=(m,dir)=>{const p=[[m.i,0],[m.i,m.k],[m.j,m.k],[m.j,LAST]];return dir==='S'?p.map(a=>[LAST-a[0],LAST-a[1]]):p};
+const fwdOf=dir=>dir==='N'?[0,1]:[0,-1],rgtOf=dir=>{const f=fwdOf(dir);return[f[1],-f[0]+0]};
+const toLocal=(g,s0,dir,s)=>{const f=fwdOf(dir),r=rgtOf(dir),dx=g[0]-s0[0],dy=g[1]-s0[1];return[(dx*r[0]+dy*r[1])*s,(dx*f[0]+dy*f[1])*s]};
+const toGrid=(u,v,s0,dir,s)=>{const f=fwdOf(dir),r=rgtOf(dir);return[s0[0]+(u*r[0]+v*f[0])/s,s0[1]+(u*r[1]+v*f[1])/s]};
+const landErr=(t,l)=>{const dx=l[0]-t[0],dy=l[1]-t[1];return{dx,dy,euc:Math.hypot(dx,dy),man:Math.abs(dx)+Math.abs(dy)}};
+/* balanced incomplete assignment: U users x K designs from D, near-uniform replicates, pair counts, positions and map difficulty */
+function genPlan(o){const U=o.users,D=o.designs,hap=o.hap,r=rng32(o.seed),tot=U*K,base=Math.floor(tot/D),reps=Array(D).fill(base);
+shuf([...Array(D).keys()],r).slice(0,tot-base*D).forEach(d=>reps[d]++);
+const lam=U*K*(K-1)/(D*(D-1)),hT=K*hap.filter(Boolean).length/D;let sets;
+for(let att=0;;att++){if(att>2000)throw new Error('could not build incidence');const tk=[];reps.forEach((n,d)=>{for(let i=0;i<n;i++)tk.push(d)});shuf(tk,r);sets=Array.from({length:U},()=>[]);let ok=true;
+for(const d of tk){let best=-1,bl=1e9;for(let u=0;u<U;u++)if(sets[u].length<K&&!sets[u].includes(d)){const l=sets[u].length+r()*.5;if(l<bl){bl=l;best=u}}if(best<0){ok=false;break}sets[best].push(d)}if(ok)break}
+const P=Array.from({length:D},()=>new Array(D).fill(0)),nH=u=>sets[u].reduce((a,d)=>a+(hap[d]?1:0),0);
+sets.forEach(s=>{for(let a=0;a<s.length;a++)for(let b=a+1;b<s.length;b++){P[s[a]][s[b]]++;P[s[b]][s[a]]++}});
+const cost1=()=>{let c=0;for(let a=0;a<D;a++)for(let b=a+1;b<D;b++)c+=(P[a][b]-lam)**2;for(let u=0;u<U;u++)c+=3*(nH(u)-hT)**2;return c};
+const mv=(u,i,from,to)=>{for(const c of sets[u])if(c!==from){P[from][c]--;P[c][from]--;P[to][c]++;P[c][to]++}sets[u][i]=to};
+let c1=cost1();
+const N1=60000;for(let it=0;it<N1;it++){const u1=ri(r,0,U-1);let u2=ri(r,0,U-2);if(u2>=u1)u2++;const i1=ri(r,0,K-1),i2=ri(r,0,K-1),a=sets[u1][i1],b=sets[u2][i2];
+if(a===b||sets[u2].includes(a)||sets[u1].includes(b))continue;mv(u1,i1,a,b);mv(u2,i2,b,a);const nc=cost1(),Tm=1.5*Math.pow(.02/1.5,it/N1);if(nc<=c1||r()<Math.exp((c1-nc)/Tm))c1=nc;else{mv(u1,i1,b,a);mv(u2,i2,a,b)}}
+const order=sets.map(s=>shuf(s.slice(),r)),B=3,bin=p=>Math.floor(p*B/K);
+const posCost=()=>{let c=0;const cnt=Array.from({length:D},()=>[0,0,0,0,0]),hp=new Array(K).fill(0);
+order.forEach(o=>o.forEach((d,p)=>{cnt[d][bin(p)]++;cnt[d][3+p%2]++;if(hap[d])hp[p]++}));
+for(let d=0;d<D;d++){for(let b=0;b<B;b++)c+=(cnt[d][b]-reps[d]/B)**2;c+=(cnt[d][3]-reps[d]/2)**2+(cnt[d][4]-reps[d]/2)**2}
+const hm=U*hT/K;for(let p=0;p<K;p++)c+=.5*(hp[p]-hm)**2;return c};
+let c2=posCost();
+for(let it=0;it<30000;it++){const u=ri(r,0,U-1),a=ri(r,0,K-1),b=ri(r,0,K-1);if(a===b)continue;const o=order[u];[o[a],o[b]]=[o[b],o[a]];const nc=posCost();if(nc<=c2)c2=nc;else[o[a],o[b]]=[o[b],o[a]]}
+const cls=order.map(()=>shuf(Array.from({length:K},(_,i)=>i%3),r));
+const clsCost=()=>{let c=0;const cnt=Array.from({length:D},()=>[0,0,0]),bc=Array.from({length:B},()=>[0,0,0]);
+order.forEach((o,u)=>o.forEach((d,p)=>{cnt[d][cls[u][p]]++;bc[bin(p)][cls[u][p]]++}));
+for(let d=0;d<D;d++)for(let k=0;k<3;k++)c+=(cnt[d][k]-reps[d]/3)**2;const t=U*K/B/3;for(let b=0;b<B;b++)for(let k=0;k<3;k++)c+=.3*(bc[b][k]-t)**2;return c};
+let c3=clsCost();
+for(let it=0;it<20000;it++){const u=ri(r,0,U-1),a=ri(r,0,K-1),b=ri(r,0,K-1);if(a===b||cls[u][a]===cls[u][b])continue;const x=cls[u];[x[a],x[b]]=[x[b],x[a]];const nc=clsCost();if(nc<=c3)c3=nc;else[x[a],x[b]]=[x[b],x[a]]}
+const trials=order.map((o,u)=>o.map((d,p)=>{const dir=p%2?'S':'N',map=makeMap(r,cls[u][p],r()<.5?1:-1);return{u:u+1,pos:p+1,d,cls:cls[u][p],dir,map}}));
+return{trials,reps,lam}}
+function planReport(g,hap){const D=g.reps.length,U=g.trials.length,cnt=Array.from({length:D},()=>[0,0,0,0,0,0,0,0]),P=Array.from({length:D},()=>new Array(D).fill(0)),hu=[];
+g.trials.forEach(u=>{const ds=u.map(t=>t.d);hu.push(ds.filter(d=>hap[d]).length);for(let a=0;a<ds.length;a++)for(let b=a+1;b<ds.length;b++){P[ds[a]][ds[b]]++;P[ds[b]][ds[a]]++}
+u.forEach(t=>{cnt[t.d][Math.floor((t.pos-1)*3/K)]++;cnt[t.d][3+(t.pos-1)%2]++;cnt[t.d][5+t.cls]++})});
+const pairs=[];for(let a=0;a<D;a++)for(let b=a+1;b<D;b++)pairs.push(P[a][b]);
+const mm=a=>[Math.min(...a),Math.max(...a)],col=i=>cnt.map(c=>c[i]);
+const hist={};pairs.forEach(x=>hist[x]=(hist[x]||0)+1);
+return{hist,reps:mm(g.reps),pairs:mm(pairs),pairMean:+(pairs.reduce((a,b)=>a+b,0)/pairs.length).toFixed(2),hapPerUser:mm(hu),early:mm(col(0)),mid:mm(col(1)),late:mm(col(2)),odd:mm(col(3)),even:mm(col(4)),easy:mm(col(5)),medium:mm(col(6)),hard:mm(col(7))}}
+const fmtRep=r=>`replicates per design: ${r.reps[0]} to ${r.reps[1]}\npair co-occurrence: ${r.pairs[0]} to ${r.pairs[1]} (mean ${r.pairMean}); pairs by count: ${Object.keys(r.hist).map(k=>k+'x:'+r.hist[k]).join(' ')}\nhaptic designs per participant: ${r.hapPerUser[0]} to ${r.hapPerUser[1]}\ntimes a design is early / middle / late: ${r.early.join('-')} / ${r.mid.join('-')} / ${r.late.join('-')}\nodd / even position: ${r.odd.join('-')} / ${r.even.join('-')}\neasy / medium / hard maps per design: ${r.easy.join('-')} / ${r.medium.join('-')} / ${r.hard.join('-')}`;
+const CORE3={catalogCfg,genPlan,planReport,fmtRep,makeMap,mapPts,toLocal,toGrid,landErr,ptl,rng32,COLS};
+/*ENDCORE3*/
+const $=i=>document.getElementById(i),RS=[[2,'absolutely no effort'],[13,'almost no effort'],[26,'little effort'],[37,'some effort'],[57,'rather much effort'],[71,'considerable effort'],[85,'great effort'],[102,'very great effort'],[113,'extreme effort']];
+const CFK='sx_cfg',PLK='sx_plan',TRK='sx_trials',INK='sx_intro',DEF={sp:.5,bw:1,rp:2,ld:2,cr:.6,cap:90,an:30,ar:60,ch:40,cl:'clips/',sd:20261123,nu:16};
+const store={g(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){$('sx-st').textContent='Could not save: storage is full or blocked. Export now.';return false}},d(k){try{localStorage.removeItem(k)}catch(e){}}};
+let cfg=Object.assign({},DEF,store.g(CFK,{}));
+const say=t=>{$('sx-st').textContent=t};
+/* ---- catalogue (ids come from the engine's own naming) ---- */
+const F0={T:T.value,R:R.value,S1:S1.value,P1:P1.value,S2:S2.value,P2:P2.value,CV:CV.value,SP:SP.checked},P0=PATH.slice(),C0=CPS.slice();
+function applyDesign(c){T.value=c.T;R.disabled=false;R.value=c.R;CV.value=c.CV;SP.checked=!!c.SP;fix();S1.value=c.S1;P1.value=c.P1;S2.value=c.S2;P2.value=c.P2;fix();ui()}
+const DES=catalogCfg().map((c,i)=>{applyDesign(c);return Object.assign({},c,{i,name:names()[0],mod:c.T[0]==='H'?'haptic':'audio'})});
+T.value=F0.T;R.value=F0.R;CV.value=F0.CV;SP.checked=F0.SP;fix();S1.value=F0.S1;P1.value=F0.P1;S2.value=F0.S2;P2.value=F0.P2;fix();ui();
+const RD={P:'how far you are from the path',C:'whether you are pointing at the next checkpoint',L:'whether you are pointing at a guide point that moves ahead of you',G:'how close you are to the next checkpoint'},CD={r:'the rate of the pulses',t:'the pitch',v:'the loudness',w:'the length of each pulse',d:'how rough or distorted it sounds'};
+const describe=d=>d.T==='A.Speech'?'Spoken directions (forward, left, right, turn around) that tell you where to turn.':/Code/.test(d.T)?(d.mod==='haptic'?'Vibration':'Beep')+' patterns that tell you to go straight, or turn left or right.':`${d.T==='A.Stream'?'A continuous sound':d.T==='A.Pulse'?'Beeps':'Vibration pulses'} that tell you ${RD[d.R]}. The feedback changes through ${CD[d.car]}.`;
+const clipName=n=>n.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+/* ---- plan and data ---- */
+function getPlan(force){let p=store.g(PLK,null);if(!force&&p&&p.users===cfg.nu&&p.seed===cfg.sd)return p;
+const g=genPlan({users:cfg.nu,seed:cfg.sd,designs:DES.length,hap:DES.map(d=>d.mod==='haptic')});
+p={users:cfg.nu,seed:cfg.sd,names:DES.map(d=>d.name),trials:g.trials.map(u=>u.map(t=>({name:DES[t.d].name,cls:t.cls,dir:t.dir,map:t.map}))),report:fmtRep(planReport(g,DES.map(d=>d.mod==='haptic')))};store.s(PLK,p);return p}
+const trials=()=>store.g(TRK,[]),trKey=(u,p)=>'sx_tr_'+u+'_'+p;
+const nextPos=u=>{const dn=new Set(trials().filter(t=>t.u===u).map(t=>t.pos));for(let p=1;p<=K;p++)if(!dn.has(p))return p;return 0};
+function mk(u,pos,dry){const p=getPlan(),t=p.trials[u-1][pos-1],des=DES.find(d=>d.name===t.name);if(!des)throw new Error('design '+t.name+' is not in the catalogue; regenerate the plan');
+const pts=mapPts(t.map,t.dir);return{u,pos,dry,des,tr:{dir:t.dir,map:t.map,cls:t.cls,pts,start:pts[0],target:pts[3]},iso:new Date().toISOString(),clipS:0,replays:0,clipMissing:false}}
+let S=null;
+const scr=k=>{['sx-home','sx-prep','sxr','sx-rec'].forEach(i=>$(i).hidden=i!=={home:'sx-home',prep:'sx-prep',walk:'sxr',rec:'sx-rec'}[k])};
+/* ---- settings ---- */
+const CI={sp:'sx-sp',bw:'sx-bw',rp:'sx-rp',ld:'sx-ld',cr:'sx-cr',cap:'sx-cap',an:'sx-an',ar:'sx-ar',ch:'sx-ch',cl:'sx-cl',sd:'sx-sd',nu:'sx-nu'};
+const cfgToUI=()=>{for(const k in CI)$(CI[k]).value=cfg[k]};
+const cfgFromUI=()=>{for(const k in CI){const e=$(CI[k]);cfg[k]=k==='cl'?(e.value.replace(/\/*$/,'/')):+e.value}};
+function applyParams(){const s=cfg.sp,set=(i,v)=>{q(i).value=v};set('hw',+(cfg.bw*s).toFixed(3));set('rp',+(cfg.rp*s).toFixed(3));set('ld',+(cfg.ld*s).toFixed(3));set('an',cfg.an);set('arp',cfg.ar);set('ch',cfg.ch);set('st',.15);set('ga',.6);window.CPR=cfg.cr*s}
+/* ---- home screen ---- */
+function renderHome(){const u=+$('sx-user').value,p=getPlan(),dn=new Set(trials().filter(t=>t.u===u).map(t=>t.pos)),np=nextPos(u);
+$('sx-nt').value=np?np+' of '+K:'all done';
+$('sx-plan').innerHTML='<table><tr><th>#</th><th>Design</th><th></th><th></th></tr>'+p.trials[u-1].map((t,i)=>`<tr><td>${i+1}</td><td class="tg">${t.name}</td><td class="${dn.has(i+1)?'done':''}">${dn.has(i+1)?'done':''}</td><td><button data-p="${i+1}">Run</button> <button data-p="${i+1}" data-dry="1">Dry</button></td></tr>`).join('')+'</table>';
+$('sx-rep').textContent=p.report||'';renderSheet()}
+function renderSheet(){const on=$('sx-shw').dataset.on==='1';$('sx-shw').hidden=!on;$('sx-sheet').textContent='Researcher sheet: '+(on?'on':'off');if(!on)return;
+const u=+$('sx-user').value,p=getPlan();$('sx-shw').innerHTML='<div class="sxbox tg">'+p.trials[u-1].map((t,i)=>{const g=mapPts(t.map,t.dir);return`${i+1}. ${t.name}<br>&nbsp;&nbsp;${ptl(...g[0])} → ${ptl(...g[1])} → ${ptl(...g[2])} → ${ptl(...g[3])}`}).join('<br>')+'</div>'}
+/* ---- clips ---- */
+let vEl=null,demoT=null,demoEng=false,demoOn=false,demoRestart=null;
+function restoreEngine(){fbStop();PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0}
+function stopDemo(){clearInterval(demoT);demoT=null;demoRestart=null;if(demoEng){demoEng=false;restoreEngine()}}
+/* ---- built-in animated demos (used whenever a video file is missing) ---- */
+const DPTS=[[0,0],[0,5],[3,5],[3,9]];
+const clampn=(x,a,b)=>Math.max(a,Math.min(b,x)),easeo=x=>x*x*(3-2*x);
+function designDemo(){const des=S.des,s=cfg.sp,c=$('sx-dm'),g=c.getContext('2d'),cap=$('sx-dc'),btn=$('sx-dp'),segs=[];let L=0;
+for(let i=0;i<3;i++){const dx=DPTS[i+1][0]-DPTS[i][0],dy=DPTS[i+1][1]-DPTS[i][1],l=Math.hypot(dx,dy);segs.push({a:DPTS[i],dx:dx/l,dy:dy/l,l,s0:L});L+=l}
+const DUR=16,X=u=>170+u*28,Y=v=>285-v*28,hap=des.mod==='haptic';
+const state=()=>{const r=des.R;if(r==='P')return Math.abs(G.lat)<=cfg.bw*s?'You are on the path':`You are off the path (${(G.lat/s).toFixed(1)} cells)`;if(r==='G')return`Gap to the next checkpoint: ${(G.dc/s).toFixed(1)} cells`;return Math.abs(G.th)<=cfg.an?`You are pointing at the ${r==='C'?'checkpoint':'guide point'}`:`You are pointing away (${Math.abs(G.th|0)}°)`};
+const draw=(p,ang,hd)=>{g.fillStyle='#111';g.fillRect(0,0,480,300);g.strokeStyle='#333';g.lineWidth=1;for(let u=-4;u<=8;u++){g.beginPath();g.moveTo(X(u),Y(-1));g.lineTo(X(u),Y(10));g.stroke()}for(let v=-1;v<=10;v++){g.beginPath();g.moveTo(X(-4),Y(v));g.lineTo(X(8),Y(v));g.stroke()}
+g.strokeStyle='#8a6d00';g.lineWidth=4;g.beginPath();DPTS.forEach((q,i)=>i?g.lineTo(X(q[0]),Y(q[1])):g.moveTo(X(q[0]),Y(q[1])));g.stroke();
+DPTS.slice(1).forEach((q,i)=>{g.beginPath();g.arc(X(q[0]),Y(q[1]),i===cp?9:5,0,7);g.strokeStyle=i===cp?'#f5b800':'#8a6d00';g.lineWidth=i===cp?3:2;g.stroke()});
+g.fillStyle='#2fa76a';g.beginPath();g.arc(X(0),Y(0),6,0,7);g.fill();
+const a=hd*Math.PI/180;g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(X(p[0]),Y(p[1]));g.lineTo(X(p[0])+Math.sin(a)*26,Y(p[1])-Math.cos(a)*26);g.stroke();g.fillStyle='#fff';g.beginPath();g.arc(X(p[0]),Y(p[1]),7,0,7);g.fill()};
+draw([0,0],0,0);cap.innerHTML=`${describe(des)}<br><span class="m">${hap?'Hold the phone and feel the vibration.':'Turn the volume up.'} Watch how the feedback changes when the dot leaves the line or turns away.</span><br><b id="sx-ds"> </b>`;
+btn.textContent='▶ Play demo';
+const stop=()=>{clearInterval(demoT);demoT=null;if(demoEng){demoEng=false;restoreEngine()}btn.textContent='▶ Play again'};
+const start=()=>{stop();if(!ac)initAudio();ac.resume();applyParams();applyDesign(des);const loc=DPTS.map(q=>[q[0]*s,q[1]*s]);PATH.length=0;PATH.push(...loc);CPS.length=0;CPS.push(loc[1],loc[2],loc[3]);cp=0;sP=0;pos=[0,0];HD.value=0;demoEng=true;fbStart();btn.textContent='■ Stop';const t0=performance.now();
+demoT=setInterval(()=>{const t=(performance.now()-t0)/1000,f=clampn(t/DUR,0,1),sg=segs.find(x=>f*L<=x.s0+x.l)||segs[2],d=Math.min(f*L-sg.s0,sg.l),off=f<.2?0:f<.32?2.2*easeo((f-.2)/.12):f<.5?2.2:f<.62?2.2*(1-easeo((f-.5)/.12)):0;
+const p=[sg.a[0]+sg.dx*d+sg.dy*off,sg.a[1]+sg.dy*d-sg.dx*off],ang=Math.atan2(sg.dx,sg.dy)*180/Math.PI,hd=ang+40*Math.sin(Math.PI*clampn((f-.2)/.42,0,1))+50*Math.sin(Math.PI*clampn((f-.7)/.12,0,1));
+pos=[p[0]*s,p[1]*s];HD.value=Math.round(((hd%360)+360)%360)%360;draw(p,ang,hd);const e=$('sx-ds');if(e)e.textContent=state();if(f>=1)stop()},50)};
+btn.onclick=()=>{demoT?stop():start()};demoRestart=start}
+function introDemo(){const c=$('sx-dm'),g=c.getContext('2d'),cap=$('sx-dc'),btn=$('sx-dp');let si=0,t0=performance.now();
+const SL=[['The test','You will walk across a grid marked on the floor, from one side to the other. The route has two turns, one left and one right. You will not see a map or the route. Your phone guides you with sound or vibration. When you reach a point on the far side, stop and say "here".','grid'],
+['What we measure','How close you land to the planned end point, how long it takes, and how much mental effort it needed (a short rating after each walk). You will try 12 designs. Each one gets a short demo first, with no practice walk. There are no right or wrong answers. If a design is confusing, that is useful for us.',null],
+['Referents: what the feedback is about','Path: how far you are from the route. Checkpoint: whether you point at the next turn. Leading point: whether you point at a guide point that moves ahead of you. Gap: how close you are to the next turn.','ref'],
+['Carriers: how the feedback changes','The feedback changes through one property: rate (how fast the pulses repeat), tone (pitch), volume, width (how long each pulse lasts) or distortion (how rough it sounds). Tap to hear each one go from low to high.','car'],
+['Types','Pulse: short beeps or vibration pulses. Stream: a continuous sound. Speech: spoken directions. Code: patterns that mean straight, left or right. Audio comes from the phone speaker, haptic is vibration.',null],
+['Ready','Hold the phone upright in front of you and walk slowly and steadily. Stop when you think you are on a point on the far side and say "here". Ask us anything now.',null]];
+const hear={rate:()=>{[0,.6,1.2].forEach(a=>beep(660,.3,90,0,a));for(let i=0;i<9;i++)beep(660,.3,90,0,2.2+i*.15)},tone:()=>[330,520,830,1320].forEach((f,i)=>beep(f,.3,200,0,i*.35)),volume:()=>[.05,.15,.3,.6].forEach((v,i)=>beep(660,v,200,0,i*.35)),width:()=>[30,100,250,500].forEach((w,i)=>beep(660,.3,w,0,i*.8)),distortion:()=>[0,.3,.7,1].forEach((d,i)=>beep(660,.3,250,d,i*.45))};
+const GX=u=>119+u*22,GY=v=>275-v*22,SR=[[3,0],[3,5],[7,5],[7,11]];
+const grid=(path,dot)=>{g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#555';for(let i=0;i<12;i++)for(let j=0;j<12;j++){g.beginPath();g.arc(GX(i),GY(j),2,0,7);g.fill()}
+if(path){g.setLineDash([5,5]);g.strokeStyle='#8a6d00';g.lineWidth=3;g.beginPath();path.forEach((q,i)=>i?g.lineTo(GX(q[0]),GY(q[1])):g.moveTo(GX(q[0]),GY(q[1])));g.stroke();g.setLineDash([])}
+if(dot){g.fillStyle='#fff';g.beginPath();g.arc(GX(dot[0]),GY(dot[1]),7,0,7);g.fill()}};
+const scene=()=>{const t=(performance.now()-t0)/1000,k=SL[si][2];
+if(k==='grid'){const f=(t%9)/9*(5+4+6),sg=[5,4,6];let a=0,i=0;while(i<2&&f>a+sg[i]){a+=sg[i];i++}const d=Math.min(f-a,sg[i]),p0=SR[i],p1=SR[i+1],l=sg[i];grid(SR,[p0[0]+(p1[0]-p0[0])*d/l,p0[1]+(p1[1]-p0[1])*d/l]);g.fillStyle='#2fa76a';g.beginPath();g.arc(GX(3),GY(0),6,0,7);g.fill();g.fillStyle='#aaa';g.font='13px system-ui';g.textAlign='center';g.fillText('The dashed route is NOT shown to you',240,292)}
+else if(k==='ref'){const i=Math.floor(t/3.5)%4,X=u=>240+u*40,Y=v=>280-v*40,w=[X(1.2*Math.sin(t*.8)+.4),Y(2.2)],tg=[[0,2.2],[0,6],[0,4.4],[0,6]][i],tp=[X(tg[0]),Y(tg[1])];
+g.fillStyle='#111';g.fillRect(0,0,480,300);g.strokeStyle='#8a6d00';g.lineWidth=5;g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(0),Y(6));g.lineTo(X(2.5),Y(6));g.stroke();
+g.setLineDash([6,5]);g.strokeStyle='#ccc';g.lineWidth=2;g.beginPath();g.moveTo(w[0],w[1]);g.lineTo(tp[0],tp[1]);g.stroke();g.setLineDash([]);
+if(i===1||i===3){g.strokeStyle='#f5b800';g.lineWidth=3;g.beginPath();g.arc(X(0),Y(6),10,0,7);g.stroke()}
+if(i===2){g.fillStyle='#f5b800';g.beginPath();g.arc(X(0),Y(4.4),8,0,7);g.fill()}
+if(i===1||i===2){const a=Math.atan2(tp[0]-w[0],w[1]-tp[1])+.6*Math.sin(t*1.3);g.strokeStyle='#fff';g.lineWidth=3;g.beginPath();g.moveTo(w[0],w[1]);g.lineTo(w[0]+Math.sin(a)*40,w[1]-Math.cos(a)*40);g.stroke()}
+g.fillStyle='#fff';g.beginPath();g.arc(w[0],w[1],7,0,7);g.fill();g.fillStyle='#f5b800';g.font='bold 15px system-ui';g.textAlign='left';g.fillText(['Path: distance from the route','Checkpoint: pointing at the next turn','Leading point: pointing at the guide point','Gap: distance to the next turn'][i],14,24)}
+else if(k==='car'){g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#ddd';g.font='15px system-ui';g.textAlign='center';g.fillText('Tap a button below to hear it',240,150)}
+else{g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#f5b800';g.font='bold 22px system-ui';g.textAlign='center';g.fillText(SL[si][0],240,150)}};
+const show=()=>{const s=SL[si];t0=performance.now();cap.innerHTML=`<b>${s[0]}</b> <span class="m">(${si+1} of ${SL.length})</span><br>${s[1]}`+(s[2]==='car'?'<div class="r" id="sx-hr" style="margin-top:8px">'+Object.keys(hear).map(k=>`<button data-h="${k}">${k}</button>`).join('')+'</div>':'');btn.textContent=si<SL.length-1?'Next ▸':'Back to start';
+const hr=$('sx-hr');if(hr)hr.onclick=e=>{const b=e.target.closest('button');if(b){if(!ac)initAudio();ac.resume();hear[b.dataset.h]()}}};
+btn.onclick=()=>{si=(si+1)%SL.length;show()};demoRestart=()=>{si=0;show()};show();demoT=setInterval(scene,50)}
+function showDemo(){stopDemo();const b=$('sx-vbox');b.style.aspectRatio='auto';b.style.display='block';b.style.textAlign='center';
+b.innerHTML='<canvas id="sx-dm" width="480" height="300" style="width:100%;display:block;background:#111"></canvas><div class="ph" id="sx-dc"></div><div style="padding:0 12px 12px"><button class="p" id="sx-dp" style="width:100%"></button></div>';
+if(prepMode==='intro')introDemo();else designDemo()}
+function playClip(file,label,desc){const b=$('sx-vbox');stopDemo();b.style.aspectRatio='';b.style.display='';b.innerHTML='';vEl=document.createElement('video');vEl.playsInline=true;vEl.preload='auto';let shown=false;
+const ph=()=>{if(shown)return;shown=true;if(S)S.clipMissing=true;showDemo()};
+['mp4','webm'].forEach(x=>{const s=document.createElement('source');s.src=file+'.'+x;s.type='video/'+x;s.onerror=()=>{if(x==='webm')ph()};vEl.appendChild(s)});
+vEl.onerror=ph;vEl.onended=()=>{};b.appendChild(vEl);const t0=performance.now();vEl.play().catch(()=>{});vEl._t0=t0}
+const clipSecs=()=>vEl&&vEl._t0?(performance.now()-vEl._t0)/1000:0;
+$('sx-replay').onclick=()=>{if(S)S.replays++;if(demoRestart){stopDemo();showDemo();return}if(vEl&&vEl.readyState>0){vEl.currentTime=0;vEl.play().catch(()=>{})}};
+let prepMode='trial';
+function openIntro(){S=null;prepMode='intro';scr('prep');$('sx-pt').textContent='Introduction video for participant '+$('sx-user').value;$('sx-arm').hidden=true;$('sx-replay').hidden=$('sx-cont').hidden=false;playClip(cfg.cl+'intro','Introduction','Explains the test, the grid, referents, carriers and types.')}
+function openPrep(u,pos,dry){try{S=mk(u,pos,dry)}catch(e){say(e.message);return}prepMode='trial';scr('prep');
+$('sx-pt').textContent=`Participant ${u} · trial ${pos} of ${K}${dry?' · dry run':''}`;$('sx-arm').hidden=true;$('sx-replay').hidden=$('sx-cont').hidden=false;
+playClip(cfg.cl+clipName(S.des.name),S.des.name,describe(S.des))}
+$('sx-cont').onclick=()=>{stopDemo();if(prepMode==='intro'){const v=store.g(INK,{});v[$('sx-user').value]=new Date().toISOString();store.s(INK,v);if(vEl)vEl.pause();scr('home');renderHome();return}
+if(S)S.clipS=+clipSecs().toFixed(1);if(vEl)vEl.pause();$('sx-replay').hidden=$('sx-cont').hidden=true;$('sx-arm').hidden=false;
+const st=S.tr.start;$('sx-ai').innerHTML=`<b>Researcher:</b> place the participant at <b>${ptl(...st)}</b>, feet on the point, phone upright, facing ${S.tr.dir==='N'?'north (towards row 11)':'south (towards row 0)'} along the grid lines.<br>Tap Begin, then stand still. A countdown plays, then the walk starts.`;$('sx-go').textContent=S.dry?'Open dry run':'Begin (AR)'};
+$('sx-cancel').onclick=()=>{stopDemo();if(vEl)vEl.pause();S=null;scr('home');renderHome()};
+/* ---- walk (AR or dry run) ---- */
+let sess,ref,GL,o=null,cur=null,phase='idle',waitT=0,cdT=0,rows=[],t0=0,lastRec=0,lostF=0,frames=0,capBeeped=false,dryTimer=null,showPath=true,holdT=null,hdDeg=0;
+const fbStart=()=>{if(!running)$('go').click()},fbStop=()=>{if(running)$('go').click()};
+const r3=x=>+x.toFixed(3);
+function setupTrial(){applyParams();applyDesign(S.des);const s=cfg.sp,loc=S.tr.pts.map(g=>toLocal(g,S.tr.start,S.tr.dir,s));
+PATH.length=0;PATH.push(...loc);CPS.length=0;CPS.push(loc[1],loc[2],loc[3]);cp=0;sP=0;pos=[0,0];HD.value=0;rows=[];lostF=0;frames=0;capBeeped=false}
+const hud=(t,c)=>{const e=$('sxhud');e.textContent=t;e.style.color=c||''};
+async function beginWalk(){if(!S)return;if(!ac)initAudio();ac.resume();
+if(S.dry){$('sx-prep').hidden=true;$('sxr').hidden=false;$('sxr').classList.remove('live');$('sx-dryw').hidden=false;$('sxend').hidden=true;$('sx-dbegin').hidden=false;phase='idle';applyParams();setupTrial();hud('Dry run: drag on the grid to walk, use the slider to turn. Press Start dry run.');drawDry();return}
+if(!navigator.xr){say('WebXR is not available in this browser');return}
+$('sx-prep').hidden=true;$('sxr').hidden=false;$('sx-dryw').hidden=true;$('sxend').hidden=false;
+try{sess=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local'],optionalFeatures:['dom-overlay'],domOverlay:{root:$('sxr')}})}catch(e){sess=null;$('sxr').hidden=true;scr('prep');say('Could not start AR: '+e.name+': '+e.message);return}
+const c=document.createElement('canvas');GL=c.getContext('webgl',{xrCompatible:true});if(GL.makeXRCompatible)await GL.makeXRCompatible();
+sess.updateRenderState({baseLayer:new XRWebGLLayer(sess,GL)});ref=await sess.requestReferenceSpace('local');
+o=null;cur=null;phase='wait';waitT=0;setupTrial();$('sxr').classList.add('live');hud('Hold the phone upright, facing forward.');sess.addEventListener('end',onEnd);sess.requestAnimationFrame(frame)}
+$('sx-go').onclick=beginWalk;
+function frame(t,f){sess.requestAnimationFrame(frame);GL.bindFramebuffer(GL.FRAMEBUFFER,sess.renderState.baseLayer.framebuffer);GL.clearColor(0,0,0,0);GL.clear(GL.COLOR_BUFFER_BIT);
+const pose=f.getViewerPose(ref);frames++;if(!pose){lostF++;return}const em=pose.emulatedPosition?1:0;lostF+=em;const m=pose.transform.matrix;cur={pp:[m[12],m[13],m[14]],fw:[-m[8],-m[9],-m[10]]};
+const n=Math.hypot(cur.fw[0],cur.fw[2]);
+if(phase==='wait'){if(n>.5){if(!waitT)waitT=t;if(t-waitT>800){phase='count';cdT=t;[0,1,2].forEach(i=>beep(660,.35,120,0,i));beep(990,.4,450,0,3)}}else waitT=0}
+else if(phase==='count'){const e=(t-cdT)/1000;hud('Starting in '+Math.max(1,Math.ceil(3-e)));if(e>=3){const fx=cur.fw[0]/n,fz=cur.fw[2]/n;o={p:cur.pp,f:[fx,fz],r:[-fz,fx]};t0=t;lastRec=-1e9;phase='run';fbStart()}}
+else if(phase==='run'){const dx=cur.pp[0]-o.p[0],dz=cur.pp[2]-o.p[2],u=dx*o.r[0]+dz*o.r[1],v=dx*o.f[0]+dz*o.f[1],fu=cur.fw[0]*o.r[0]+cur.fw[2]*o.r[1],fv=cur.fw[0]*o.f[0]+cur.fw[2]*o.f[1];
+pos=[u,v];let hd=0;if(Math.hypot(fu,fv)>.2){hd=((Math.atan2(fu,fv)*180/Math.PI)%360+360)%360;HD.value=Math.round(hd)%360}else hd=+HD.value;
+sample(t,u,v,hd,em)}}
+function sample(t,u,v,hd,em){const el=(t-t0)/1000;if(t-lastRec>=200){lastRec=t;rows.push([r3(el),r3(u),r3(v),+hd.toFixed(1),r3(G.lat||0),em])}
+if(el>cfg.cap&&!capBeeped){capBeeped=true;beep(440,.3,150,0,0);beep(440,.3,150,0,.3)}
+hud((S&&S.dry?'Dry run ':'Recording ')+el.toFixed(0)+' s'+(el>cfg.cap?'  (time cap reached)':''),el>cfg.cap?'#c98a00':'')}
+function onEnd(){const ran=phase==='run';fbStop();$('sxr').classList.remove('live');$('sxr').hidden=true;sess=null;phase='idle';PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0;
+if(!ran||!rows.length){say('Trial ended before the walk started. Nothing recorded.');S=null;scr('home');renderHome();return}openRec()}
+/* long press to end, so a participant cannot end the trial by accident */
+$('sxend').onpointerdown=()=>{$('sxend').textContent='Keep holding...';holdT=setTimeout(()=>{$('sxend').textContent='Hold to end trial (researcher)';endTrial()},700)};
+const rel=()=>{clearTimeout(holdT);$('sxend').textContent='Hold to end trial (researcher)'};$('sxend').onpointerup=$('sxend').onpointerleave=$('sxend').onpointercancel=rel;
+function endTrial(){if(phase!=='run')return;if(sess)sess.end();else{clearInterval(dryTimer);onEnd()}}
+/* dry run drawing and pointer */
+const dm=30,dcell=c=>(c.width-2*dm)/11;
+function drawGrid(c,op){const g=c.getContext('2d'),W=c.width,cell=dcell(c),css=getComputedStyle(document.documentElement),fg=css.getPropertyValue('--fg').trim(),mu=css.getPropertyValue('--mut').trim(),ak=css.getPropertyValue('--ac').trim(),X=x=>dm+x*cell,Y=y=>W-dm-y*cell;
+g.clearRect(0,0,W,W);g.lineWidth=1;g.strokeStyle=mu;g.globalAlpha=.35;for(let i=0;i<12;i++){g.beginPath();g.moveTo(X(i),Y(0));g.lineTo(X(i),Y(11));g.stroke();g.beginPath();g.moveTo(X(0),Y(i));g.lineTo(X(11),Y(i));g.stroke()}
+g.globalAlpha=1;g.fillStyle=mu;g.font='11px system-ui';for(let i=0;i<12;i++){g.textAlign='center';g.fillText(COLS[i],X(i),W-dm+17);g.textAlign='right';g.fillText(String(i),dm-9,Y(i)+4)}
+const ring=(p,col,fill,r)=>{g.beginPath();g.arc(X(p[0]),Y(p[1]),r||8,0,7);if(fill){g.fillStyle=col;g.fill()}else{g.lineWidth=3;g.strokeStyle=col;g.stroke()}};
+if(op.path){g.lineWidth=3;g.strokeStyle=ak;g.globalAlpha=.8;g.beginPath();op.path.forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));g.stroke();g.globalAlpha=1}
+if(op.start)ring(op.start,'#2fa76a',false,9);if(op.target)ring(op.target,ak,false,11);if(op.landed)ring(op.landed,'#e0489a',true,7);
+if(op.user){const p=op.user;ring(p,fg,true,6);if(op.hd!=null){const h=op.hd*Math.PI/180,dr=S.tr.dir==='N'?[0,1]:[0,-1],rg=rgtOf(S.tr.dir),a=[Math.sin(h)*rg[0]+Math.cos(h)*dr[0],Math.sin(h)*rg[1]+Math.cos(h)*dr[1]];g.lineWidth=3;g.strokeStyle=fg;g.beginPath();g.moveTo(X(p[0]),Y(p[1]));g.lineTo(X(p[0]+a[0]*.9),Y(p[1]+a[1]*.9));g.stroke()}}}
+function drawDry(){if(!S)return;const c=$('sx-dcv'),g=toGrid(pos[0],pos[1],S.tr.start,S.tr.dir,cfg.sp);drawGrid(c,{path:showPath?S.tr.pts:null,start:S.tr.start,target:showPath?S.tr.target:null,user:g,hd:hdDeg})}
+const dryMove=e=>{if(!S||!S.dry||(e.type==='pointermove'&&!e.buttons))return;const c=$('sx-dcv'),r=c.getBoundingClientRect(),px=(e.clientX-r.left)*c.width/r.width,py=(e.clientY-r.top)*c.height/r.height,cell=dcell(c),gx=(px-dm)/cell,gy=(c.width-dm-py)/cell;pos=toLocal([gx,gy],S.tr.start,S.tr.dir,cfg.sp);drawDry()};
+$('sx-dcv').onpointerdown=$('sx-dcv').onpointermove=dryMove;
+$('sx-hd').oninput=()=>{hdDeg=+$('sx-hd').value;HD.value=((hdDeg%360)+360)%360;drawDry()};
+$('sx-pm').onclick=()=>{showPath=!showPath;$('sx-pm').textContent='Show path: '+(showPath?'on':'off');drawDry()};
+$('sx-dbegin').onclick=()=>{if(!S)return;setupTrial();phase='run';t0=performance.now();lastRec=-1e9;fbStart();$('sx-dbegin').hidden=true;$('sxend').hidden=false;
+clearInterval(dryTimer);dryTimer=setInterval(()=>{if(phase!=='run'){clearInterval(dryTimer);return}sample(performance.now(),pos[0],pos[1],hdDeg,0);drawDry()},100)};
+/* ---- record form ---- */
+let landed=null,tgOn=false,rsSet=false,timeTouched=false;
+function summarise(){const n=rows.length;if(!n)return null;const last=rows[n-1];let ei=n-1;for(let i=n-1;i>=0;i--){if(Math.hypot(rows[i][1]-last[1],rows[i][2]-last[2])<=.15)ei=i;else break}
+let walked=0;for(let i=1;i<=ei;i++)walked+=Math.hypot(rows[i][1]-rows[i-1][1],rows[i][2]-rows[i-1][2]);const lat=rows.slice(0,ei+1).map(r=>r[4]);
+return{time_phone_s:last[0],time_ar_s:rows[ei][0],walked_m:+walked.toFixed(2),mean_lat_m:r3(lat.reduce((a,b)=>a+b,0)/lat.length),rms_lat_m:r3(Math.sqrt(lat.reduce((a,b)=>a+b*b,0)/lat.length)),max_lat_m:r3(Math.max(...lat)),lost_pct:+(100*rows.filter(r=>r[5]).length/n).toFixed(1),ar_end:toGrid(rows[ei][1],rows[ei][2],S.tr.start,S.tr.dir,cfg.sp)}}
+function drawRec(){drawGrid($('sx-gc'),{start:S.tr.start,target:tgOn?S.tr.target:null,landed})}
+function openRec(){S.sum=summarise();S.trace=rows.slice();scr('rec');landed=null;tgOn=false;rsSet=false;timeTouched=false;
+$('sx-rt').textContent=`Participant ${S.u} · trial ${S.pos}/${K} · ${S.des.name}${S.dry?' · DRY RUN (not stored)':''}`;
+$('sx-time').value=S.sum?S.sum.time_ar_s.toFixed(1):'';$('sx-tm').textContent=S.sum?`AR estimate of when they stopped. Type your stopwatch time to replace it.`:'';
+$('sx-rs').value=75;$('sx-rv').textContent='not set (tap the slider)';$('sx-capd').checked=false;$('sx-notes').value='';$('sx-rm').textContent='';$('sx-lp').textContent='tap the grid';$('sx-tg').textContent='Show target: off';
+$('sx-sv').textContent=S.dry?'Finish (dry run, not stored)':'Save trial';drawRec()}
+$('sx-gc').onpointerdown=e=>{const c=$('sx-gc'),r=c.getBoundingClientRect(),px=(e.clientX-r.left)*c.width/r.width,py=(e.clientY-r.top)*c.height/r.height,cell=dcell(c);
+landed=[Math.max(0,Math.min(11,Math.round((px-dm)/cell))),Math.max(0,Math.min(11,Math.round((c.width-dm-py)/cell)))];$('sx-lp').textContent='Landed on '+ptl(...landed);drawRec()};
+$('sx-tg').onclick=()=>{tgOn=!tgOn;$('sx-tg').textContent='Show target: '+(tgOn?'on':'off');drawRec()};
+$('sx-time').oninput=()=>{timeTouched=true};
+$('sx-rs').oninput=()=>{rsSet=true;const v=+$('sx-rs').value,a=RS.reduce((b,x)=>Math.abs(x[0]-v)<Math.abs(b[0]-v)?x:b);$('sx-rv').textContent=v+' (nearest: '+a[1]+')'};
+$('sx-anch').innerHTML=RS.map(a=>`<span>${a[0]}<br>${a[1]}</span>`).join('');$('sx-anch').style.flexWrap='wrap';
+$('sx-disc').onclick=()=>{S=null;say('Trial discarded. It stays in the list to run again.');scr('home');renderHome()};
+$('sx-sv').onclick=()=>{const miss=[];if(!landed)miss.push('landing point');if(!rsSet)miss.push('RSME');const tv=parseFloat($('sx-time').value);if(!(tv>=0))miss.push('time');if(miss.length){$('sx-rm').textContent='Missing: '+miss.join(', ');return}
+if(S.dry){say('Dry run finished. Nothing stored.');S=null;scr('home');renderHome();return}
+const tr=S.tr,e=landErr(tr.target,landed),sm=S.sum||{},ae=sm.ar_end,rec={u:S.u,pos:S.pos,design:S.des.name,modality:S.des.mod,type:S.des.T,referent:S.des.R,carrier:S.des.car||'',start:ptl(...tr.start),target:ptl(...tr.target),direction:tr.dir,delta_cells:tr.map.delta,turn_row:tr.map.k,map_class:['easy','medium','hard'][tr.cls],
+landed:ptl(...landed),err_euclid_cells:+e.euc.toFixed(3),err_manhattan_cells:e.man,err_dx_cells:e.dx,err_dy_cells:e.dy,hit:e.euc===0?1:0,on_target_side:landed[1]===tr.target[1]?1:0,
+time_s:tv,time_source:timeTouched?'stopwatch':'ar_estimate',time_ar_s:sm.time_ar_s??'',time_phone_s:sm.time_phone_s??'',capped:$('sx-capd').checked?1:0,rsme:+$('sx-rs').value,
+ar_end_pt:ae?ptl(...ae):'',ar_vs_landed_cells:ae?+Math.hypot(ae[0]-landed[0],ae[1]-landed[1]).toFixed(2):'',walked_m:sm.walked_m??'',mean_dev_m:sm.mean_lat_m??'',rms_dev_m:sm.rms_lat_m??'',max_dev_m:sm.max_lat_m??'',tracking_lost_pct:sm.lost_pct??'',
+clip_watch_s:S.clipS,clip_replays:S.replays,clip_missing:S.clipMissing?1:0,notes:$('sx-notes').value,started:S.iso,spacing_m:cfg.sp,band_cells:cfg.bw,ramp_cells:cfg.rp,lead_cells:cfg.ld,checkpoint_radius_cells:cfg.cr,cap_s:cfg.cap,angle_thr:cfg.an,angle_ramp:cfg.ar,corner_hold:cfg.ch,device:navigator.userAgent};
+const all=trials().filter(t=>!(t.u===S.u&&t.pos===S.pos));all.push(rec);if(!store.s(TRK,all))return;store.s(trKey(S.u,S.pos),S.trace);say(`Saved participant ${S.u}, trial ${S.pos}. ${trials().filter(t=>t.u===S.u).length}/${K} done.`);S=null;scr('home');renderHome()};
+/* ---- export ---- */
+function exportAll(){const T=trials();if(!T.length){say('No data stored yet.');return}const cols=Object.keys(T[0]),p=getPlan();
+const tr=[];T.forEach(t=>(store.g(trKey(t.u,t.pos),[])).forEach(r=>tr.push([t.u,t.pos,t.design,...r])));
+const plan=[];p.trials.forEach((u,ui)=>u.forEach((t,i)=>{const g=mapPts(t.map,t.dir);plan.push([ui+1,i+1,t.name,ptl(...g[0]),ptl(...g[3]),t.dir,t.map.delta,t.map.k,['easy','medium','hard'][t.cls]])}));
+const meta=[['field','value'],['test','screening_grid_walk'],['participants',cfg.nu],['designs',DES.length],['trials_per_participant',K],['plan_seed',cfg.sd],['exported',new Date().toISOString()],['catalogue',DES.map(d=>d.name).join(', ')],['plan_quality',p.report||''],['intro_watched',JSON.stringify(store.g(INK,{}))],['device',navigator.userAgent]];
+const aoa=[cols].concat(T.map(t=>cols.map(c=>t[c])));
+if(window.XLSX){const W=XLSX.utils.book_new(),add=(n,a)=>XLSX.utils.book_append_sheet(W,XLSX.utils.aoa_to_sheet(a),n);add('Meta',meta);add('Trials',aoa);add('Traces',[['u','pos','design','t_s','u_m','v_m','heading_deg','lateral_dev_m','tracking_lost']].concat(tr));add('Plan',[['u','pos','design','start','target','direction','delta_cells','turn_row','map_class']].concat(plan));XLSX.writeFile(W,'screening_all_participants.xlsx');say(`Downloaded ${T.length} trials.`)}
+else{const csv=aoa.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='screening_trials.csv';a.click();alert('Excel library did not load, so only the Trials sheet was saved as CSV.')}}
+$('sx-exp').onclick=exportAll;
+$('sx-clr').onclick=()=>{if(!confirm('Delete ALL screening data on this device? Export first.'))return;trials().forEach(t=>store.d(trKey(t.u,t.pos)));store.d(TRK);store.d(INK);say('Cleared.');renderHome()};
+$('sx-save').onclick=()=>{cfgFromUI();store.s(CFK,cfg);say('Settings saved.');renderHome()};
+$('sx-regen').onclick=()=>{cfgFromUI();if(trials().length&&!confirm('Data already exists. A new plan would no longer match it. Continue?'))return;store.s(CFK,cfg);getPlan(true);say('New plan generated.');renderHome()};
+/* ---- navigation ---- */
+$('sx-user').innerHTML=Array.from({length:cfg.nu},(_,i)=>`<option value="${i+1}">Participant ${i+1}</option>`).join('');cfgToUI();
+$('sx-user').oninput=renderHome;$('sx-next').onclick=()=>{const u=+$('sx-user').value,p=nextPos(u);if(!p){say('All trials done for this participant.');return}openPrep(u,p,false)};
+$('sx-dry').onclick=()=>{const u=+$('sx-user').value;openPrep(u,nextPos(u)||1,true)};
+$('sx-intro').onclick=openIntro;
+$('sx-sheet').onclick=()=>{$('sx-shw').dataset.on=$('sx-shw').dataset.on==='1'?'0':'1';renderSheet()};
+$('sx-plan').onclick=e=>{const b=e.target.closest('button');if(b)openPrep(+$('sx-user').value,+b.dataset.p,!!b.dataset.dry)};
+const MODES=['tt','dt','pl','ct','sc'],BT={dt:'dtb',pl:'plb',ct:'ctb',sc:'scb'},LB={dt:'Drift test (WebXR)',pl:'Pilot',ct:'Carrier test',sc:'Screening'};
+function showMode(k){MODES.forEach(i=>$(i).hidden=i!==k);for(const i in BT)$(BT[i]).textContent=k===i?'Back to tester':LB[i];if(running)$('go').click();if(k==='sc'){scr('home');renderHome()}}
+for(const i in BT)$(BT[i]).onclick=()=>showMode($(i).hidden?i:'tt');
+/* ---- self-test and demo hooks (open with #selftest or #demo=home|prep|dry|rec) ---- */
+function selfTest(){const out=[],ids=DES.map(d=>d.name);out.push(`catalogue: ${DES.length} designs, ${new Set(ids).size} unique ids`);
+const g=genPlan({users:16,seed:1,designs:DES.length,hap:DES.map(d=>d.mod==='haptic')});out.push(fmtRep(planReport(g,DES.map(d=>d.mod==='haptic'))));
+const s=.5,pts=[[3,0],[3,5],[7,5],[7,11]],loc=pts.map(p=>toLocal(p,[3,0],'N',s));applyParams();
+const probes=[[0,.7,0],[.25,.7,0],[.5,.7,0],[1.2,.7,0],[0,.7,60],[0,.7,150]];let bad=0;
+DES.forEach(d=>{applyDesign(d);PATH.length=0;PATH.push(...loc);CPS.length=0;CPS.push(loc[1],loc[2],loc[3]);const sig=[];
+probes.forEach(p=>{cp=0;sP=0;pos=[p[0],p[1]];HD.value=p[2];tick();const f=window.FD;sig.push(/Speech|Code/.test(d.T)?'th'+Math.round(G.th):f&&f.on?`r${f.rate.toFixed(1)}/v${f.vol.toFixed(2)}/t${f.tone|0}/w${(f.width*1000)|0}/d${f.dist.toFixed(2)}`:'off')});
+const vary=new Set(sig).size>1;if(!vary)bad++;out.push((vary?'ok   ':'FLAT ')+d.name.padEnd(18)+sig.join(' | '))});
+PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0;out.push('flat designs: '+bad);
+const lg=toGrid(...toLocal([5,5],[3,0],'N',s),[3,0],'N',s),ls=toGrid(...toLocal([5,5],[8,11],'S',s),[8,11],'S',s);out.push('geometry round trip '+lg.map(x=>x.toFixed(2))+' / '+ls.map(x=>x.toFixed(2)));
+const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
+function demo(k){showMode('sc');const u=1;if(k==='intro'||k==='intro3'||k==='intro4'){openIntro();setTimeout(()=>{const n=k==='intro3'?2:k==='intro4'?3:0;for(let i=0;i<n;i++)$('sx-dp').click()},400)}
+else if(k==='play'||k==='playend'){openPrep(u,1,false);setTimeout(()=>{$('sx-dp').click()},600)}
+else if(k==='prep'){openPrep(u,1,false);$('sx-cont').click()}else if(k==='dry'){openPrep(u,1,true);$('sx-cont').click();beginWalk()}
+else if(k==='rec'){S=mk(u,1,false);rows=[[0,0,0,0,0,0],[2,0,1,0,.1,0],[4,0.5,2,10,.3,0],[6,1,2.5,0,.3,0],[8,1,2.5,0,.3,0]];S.sum=summarise();S.trace=rows;openRec();landed=[4,11];tgOn=true;drawRec()}else if(k==='sheet'){$('sx-shw').dataset.on='1';renderSheet()}}
+function flowTest(){const out=[];showMode('sc');S=mk(2,3,false);phase='run';t0=0;
+rows=[[0,0,0,0,.0,0],[1,0,1,0,.1,0],[3,0,3,0,.2,0],[5,-1.5,3,300,.2,0],[7,-1.5,5,0,.3,0],[9,-1.5,5.1,0,.3,0],[11,-1.5,5.1,0,.3,0]];
+onEnd();out.push('record visible: '+!$('sx-rec').hidden+' | '+$('sx-rt').textContent);
+const c=$('sx-gc'),r=c.getBoundingClientRect(),cell=dcell(c),tg=S.tr.target;
+c.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.left+(dm+(tg[0]+1)*cell)*r.width/c.width,clientY:r.top+(c.width-dm-tg[1]*cell)*r.height/c.height}));
+out.push('target '+ptl(...tg)+' tapped -> '+$('sx-lp').textContent);
+$('sx-sv').click();out.push('missing msg: '+$('sx-rm').textContent);
+$('sx-rs').value=62;$('sx-rs').dispatchEvent(new Event('input'));$('sx-time').value='11.4';$('sx-time').dispatchEvent(new Event('input'));$('sx-sv').click();
+const t=trials();out.push('stored trials: '+t.length);out.push(JSON.stringify(t[0]));out.push('trace rows: '+store.g(trKey(2,3),[]).length);out.push('next pos for user 2: '+nextPos(2)+' | status: '+$('sx-st').textContent);
+out.push('path restored: '+PATH.length+' CPR='+window.CPR);
+const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
+if(location.hash==='#flowtest')setTimeout(flowTest,200);
+if(location.hash==='#selftest')setTimeout(selfTest,200);const dm_=/^#demo=(\w+)/.exec(location.hash);if(dm_)setTimeout(()=>demo(dm_[1]),200);
+})();
+</script></body></html>
