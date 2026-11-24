@@ -53,6 +53,14 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 #sx-vbox video{width:100%;height:100%;object-fit:contain;background:#000}#sx-vbox .ph{padding:16px;font-size:14px}
 #sx-grad{width:100%;display:block;background:var(--card);border-bottom:1px solid #333}
 #sx-vbox #sx-grad[hidden]{display:none!important}
+#sx-dn{font:700 21px/1.2 ui-monospace,Menlo,Consolas,monospace;color:var(--ac);margin:2px 0 8px}#sx-dn small{display:block;font:13px/1.3 system-ui;color:var(--mut);margin-top:3px}
+#sx-card{background:rgba(0,0,0,.8);color:#ddd;border:1px solid #444;border-radius:10px;padding:8px 10px;margin:6px 0;font:12px/1.35 system-ui}#sxr.live #sx-card{position:fixed;top:calc(env(safe-area-inset-top,0px) + 42px);left:12px;right:12px;margin:0;max-width:340px}
+#sx-ch2{display:flex;justify-content:space-between;align-items:center;gap:8px}#sx-cn{font:700 14px ui-monospace,Menlo,Consolas,monospace;color:#f5b700}#sx-ct{padding:2px 10px;font-size:12px;background:#222;color:#bbb;border:1px solid #444;border-radius:6px}
+#sx-cc{width:100%;display:block;margin-top:6px;background:#161616;border-radius:6px}#sx-card.min #sx-cb{display:none}#sx-cx{margin-top:4px}
+#sx-calt{display:none}#sxr.live #sx-calt{display:block;position:fixed;left:16px;right:16px;top:52%;transform:translateY(-50%);text-align:center;font:600 19px/1.4 system-ui;color:#e8e8e8}
+#sxr.live #sx-mark{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);padding:26px;font-size:20px;font-weight:700;background:#f5b700;color:#111;border:0;border-radius:12px;margin:0}
+#sxr.live #sx-skip{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);padding:12px;font-size:13px;background:#1b1b1b;color:#777;border:1px solid #333;margin:0}#sx-card.hid{display:none}
+#sx-revc{max-width:100%;margin:8px 0}#sx-revh{margin:6px 0;font-size:22px}
 #sxr{margin:8px 0}#sx-dcv{max-width:100%;margin:8px 0}
 #sxr.live{position:fixed;inset:0;background:#000;color:#777;z-index:9;margin:0}
 #sxr.live #sx-dryw{display:none}
@@ -170,15 +178,17 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 <label>Clips folder<input id="sx-cl" value="clips/"></label>
 <label>Plan seed<input id="sx-sd" type="number" value="20261123"></label>
 <label>Participants<input id="sx-nu" type="number" value="17"></label>
+<label>Calibration walk (cells, 0 = off)<input id="sx-cal" type="number" step="1" value="4"></label>
 </div>
 <div class="r"><button id="sx-regen">Regenerate plan</button><button id="sx-save">Save settings</button></div>
 <pre id="sx-rep" class="m" style="white-space:pre-wrap"></pre>
-<details><summary>All 36 designs in this screening</summary><ol id="sx-cat" class="m tg" style="padding-left:20px;font-size:12px"></ol></details>
+<details><summary>All designs in this screening</summary><ol id="sx-cat" class="m tg" style="padding-left:20px;font-size:12px"></ol></details>
 </details>
 <div id="sx-st" class="m"></div>
 </div>
 <div id="sx-prep" hidden>
 <div class="m" id="sx-pt"></div>
+<div id="sx-dn" hidden></div>
 <div id="sx-vbox"></div>
 <div class="r"><button id="sx-replay">Replay</button><button class="p" id="sx-cont">Continue</button></div>
 <div id="sx-arm" hidden class="sxbox"><div id="sx-ai"></div><div class="r"><button class="p" id="sx-go">Begin (AR)</button></div></div>
@@ -186,11 +196,15 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 </div>
 <div id="sxr" hidden>
 <div id="sxhud"></div>
+<div id="sx-calt"></div>
+<button id="sx-mark" type="button" hidden>MARK</button><button id="sx-skip" type="button" hidden>Skip calibration (use phone facing)</button>
+<div id="sx-card"><div id="sx-ch2"><b id="sx-cn"></b><button id="sx-ct" type="button">hide</button></div><div id="sx-cb"><canvas id="sx-cc" width="340" height="132"></canvas><div id="sx-cx"></div></div></div>
 <div id="sx-dryw"><canvas id="sx-dcv" width="340" height="340"></canvas>
 <label>Heading (° from forward)<input type="range" id="sx-hd" min="-180" max="180" value="0"></label>
 <div class="r"><button id="sx-pm">Show path: on</button><button id="sx-dbegin" class="p">Start dry run</button></div></div>
 <button id="sxend">Hold to end trial (researcher)</button>
 </div>
+<div id="sx-rev" hidden><h2 id="sx-revh"></h2><canvas id="sx-revc" width="340" height="340"></canvas><div id="sx-revm"></div><div class="r"><button class="p" id="sx-revn">Next</button></div></div>
 <div id="sx-rec" hidden>
 <div class="m" id="sx-rt"></div>
 <div class="sxbox"><b>1. Landing point</b> <span class="m">tap the point the participant stopped on</span>
@@ -280,12 +294,15 @@ o.type='triangle';o.frequency.value=f;n.buffer=NZ;n.loop=true;og.gain.value=1-di
 o.connect(og);n.connect(ng);og.connect(g);ng.connect(g);g.connect(mst);
 g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);g.gain.setValueAtTime(vol,t+d-.008);g.gain.linearRampToValueAtTime(0,t+d);
 o.start(t);n.start(t);o.stop(t+d+.02);n.stop(t+d+.02)}
+/* Pulses are scheduled on the audio clock (150 ms look-ahead), so spacing stays equal even when the 30 ms timer is late.
+   Haptics cannot be scheduled ahead, so they keep a fixed cadence from the last due time. */
+let nxtA=0,nxtH=0;
 function pulse(d,hap){const now=performance.now();
-if(!d.on){nxt=0;if(hap&&navigator.vibrate)navigator.vibrate(0);return}
-const rate=hap?RMIN+(d.rate-RMIN)*4/6:d.rate,per=1000/rate;/* haptic: 3 to 7 Hz so bursts do not blur */
-if(now-nxt<per)return;nxt=now;/* next pulse is due one current period after the last, so a rate change is felt at once */
-const dur=Math.max(25,Math.min(d.width*1000,per*.6));
-if(hap){if(navigator.vibrate)navigator.vibrate(dur)}else beep(d.tone,d.vol,dur,d.dist)}
+if(!d.on){nxtA=nxtH=0;if(hap&&navigator.vibrate)navigator.vibrate(0);return}
+const rate=hap?RMIN+(d.rate-RMIN)*4/6:d.rate,per=1000/rate,dur=Math.max(25,Math.min(d.width*1000,per*.6));/* haptic: 3 to 7 Hz so bursts do not blur */
+if(hap){if(!nxtH||now>nxtH+per)nxtH=now;if(now>=nxtH){if(navigator.vibrate)navigator.vibrate(dur);nxtH+=per}return}
+if(!ac)return;const t=ac.currentTime;if(!nxtA||nxtA<t-.05)nxtA=t+.01;
+while(nxtA<t+.15){beep(d.tone,d.vol,dur,d.dist,nxtA-t);nxtA+=per/1000}}
 function stream(d){if(!ac)return;if(!sv){const o1=ac.createOscillator(),o2=ac.createOscillator(),n=ac.createBufferSource(),og=ac.createGain(),ng=ac.createGain(),g=ac.createGain();
 n.buffer=NZ;n.loop=true;o1.connect(og);o2.connect(og);n.connect(ng);og.connect(g);ng.connect(g);g.connect(mst);g.gain.value=0;o1.start();o2.start();n.start();sv={o1,o2,og,ng,g}}
 const t=ac.currentTime;sv.g.gain.setTargetAtTime(d.on?d.vol:0,t,.05);sv.o1.frequency.setTargetAtTime(d.tone,t,.05);sv.o2.frequency.setTargetAtTime(d.tone*1.5,t,.05);sv.og.gain.setTargetAtTime(.5*(1-d.dist),t,.05);sv.ng.gain.setTargetAtTime(d.dist*.6,t,.05)}
@@ -588,7 +605,7 @@ const fmtRep=r=>`replicates per design: ${r.reps[0]} to ${r.reps[1]}\npair co-oc
 const CORE3={catalogCfg,genPlan,planReport,fmtRep,makeMap,mapPts,toLocal,toGrid,landErr,ptl,rng32,COLS};
 /*ENDCORE3*/
 const $=i=>document.getElementById(i),RS=[[2,'absolutely no effort'],[13,'almost no effort'],[26,'little effort'],[37,'some effort'],[57,'rather much effort'],[71,'considerable effort'],[85,'great effort'],[102,'very great effort'],[113,'extreme effort']];
-const CFK='sx_cfg',PLK='sx_plan',TRK='sx_trials',INK='sx_intro',DEF={sp:.5,bw:1,rp:2,ld:2,cr:.6,cap:90,an:30,ar:60,ch:40,cl:'clips/',sd:20261123,nu:17};
+const CFK='sx_cfg',PLK='sx_plan',TRK='sx_trials',INK='sx_intro',DEF={sp:.5,bw:1,rp:2,ld:2,cr:.6,cap:90,an:30,ar:60,ch:40,cl:'clips/',sd:20261123,nu:17,cal:4};
 const store={g(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){$('sx-st').textContent='Could not save: storage is full or blocked. Export now.';return false}},d(k){try{localStorage.removeItem(k)}catch(e){}}};
 let cfg=Object.assign({},DEF,store.g(CFK,{}));
 const say=t=>{$('sx-st').textContent=t};
@@ -601,6 +618,9 @@ const RD={P:'how far you are from the path',C:'whether you are pointing at the n
 const MINON={r:'the pulses are at their slowest',t:'the pitch is at its lowest',v:'it is silent',w:'there are no pulses',d:'the sound is clean'},MAXOFF={r:'the pulses speed up',t:'the pitch rises',v:'it gets louder',w:'each pulse gets longer',d:'the sound gets rougher'},EDGE={P:'the edge of the strip',C:'30° away',L:'30° away',G:'a full leg away'},ON={P:'you are exactly on the path',C:'you point straight at the next checkpoint',L:'you point straight at the guide point',G:'you are at the next checkpoint'},OFF={P:'you drift sideways off the path',C:'you point away from the checkpoint',L:'you point away from the guide point',G:'you get farther from the checkpoint'};
 const CN={r:'pulse rate',t:'pitch',v:'loudness',w:'pulse length',d:'roughness'};
 const describe=d=>d.SP?`A steady ${d.T==='A.Stream'?'tone':'beep'} that moves between your ears. It is in your left ear when the target is on your left, in your right ear when it is on your right, and in the middle when you face the ${d.R==='L'?'guide point ahead of you':'next checkpoint'}. Wear headphones.`:d.T==='A.Speech'?'A voice tells you where to turn: forward, slight left or right, left or right, or turn around.':/Code/.test(d.T)?`${d.mod==='haptic'?'Buzz':'Beep'} patterns tell you where to turn, relative to the ${d.R==='L'?'guide point ahead of you':'next checkpoint'}. One short = straight ahead. Short then long = turn left. Long then short = turn right. The longer the long one, the bigger the turn. One very long = turn around.`:`${d.T==='A.Stream'?'A continuous sound':d.T==='A.Pulse'?'Beeps':'Vibration pulses'}. When ${ON[d.R]}, ${MINON[d.car]}. As ${OFF[d.R]}, ${MAXOFF[d.car]}, up to its maximum at ${EDGE[d.R]}.`;
+const TY={'A.Pulse':'Beeps','A.Stream':'Continuous sound','A.Speech':'Voice','A.Code':'Beep code','H.Pulse':'Vibration pulses','H.Code':'Vibration code'},RN={P:'Path',C:'Checkpoint',L:'Leading point',G:'Gap'},ONS={P:'on the path',C:'pointing at the checkpoint',L:'pointing at the guide point',G:'at the checkpoint'};
+const friendly=d=>[TY[d.T],d.SP?'Spatial (headphones)':d.car?CN[d.car]:'','referent: '+RN[d.R]].filter(Boolean).join(' · ');
+const brief=d=>d.SP?'Sound is in your left ear when the target is on your left, in your right ear when it is on your right, in the middle when ahead.':d.T==='A.Speech'?'A voice tells you where to turn.':/Code/.test(d.T)?'One short = straight. Short, long = left. Long, short = right. Very long = turn around. Longer = bigger turn.':`${CN[d.car][0].toUpperCase()+CN[d.car].slice(1)} is lowest when you are ${ONS[d.R]}, and rises to its maximum as you drift away.`;
 const clipName=n=>n.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
 /* ---- plan and data ---- */
 {const need=Math.ceil(5*DES.length/K);if(cfg.nu<need){cfg.nu=need;store.s(CFK,cfg)}}/* at least 5 users per design */
@@ -614,9 +634,9 @@ const nextPos=u=>{const dn=new Set(trials().filter(t=>t.u===u).map(t=>t.pos));fo
 function mk(u,pos,dry){const p=getPlan(),t=p.trials[u-1][pos-1],des=DES.find(d=>d.name===t.name);if(!des)throw new Error('design '+t.name+' is not in the catalogue; regenerate the plan');
 const pts=mapPts(t.map,t.dir);return{u,pos,dry,des,tr:{dir:t.dir,map:t.map,cls:t.cls,pts,start:pts[0],target:pts[3]},iso:new Date().toISOString(),clipS:0,replays:0,clipMissing:false}}
 let S=null;
-const scr=k=>{['sx-home','sx-prep','sxr','sx-rec'].forEach(i=>$(i).hidden=i!=={home:'sx-home',prep:'sx-prep',walk:'sxr',rec:'sx-rec'}[k])};
+const scr=k=>{['sx-home','sx-prep','sxr','sx-rec','sx-rev'].forEach(i=>$(i).hidden=i!=={home:'sx-home',prep:'sx-prep',walk:'sxr',rec:'sx-rec',reveal:'sx-rev'}[k])};
 /* ---- settings ---- */
-const CI={sp:'sx-sp',bw:'sx-bw',rp:'sx-rp',ld:'sx-ld',cr:'sx-cr',cap:'sx-cap',an:'sx-an',ar:'sx-ar',ch:'sx-ch',cl:'sx-cl',sd:'sx-sd',nu:'sx-nu'};
+const CI={sp:'sx-sp',bw:'sx-bw',rp:'sx-rp',ld:'sx-ld',cr:'sx-cr',cap:'sx-cap',an:'sx-an',ar:'sx-ar',ch:'sx-ch',cl:'sx-cl',sd:'sx-sd',nu:'sx-nu',cal:'sx-cal'};
 const cfgToUI=()=>{for(const k in CI)$(CI[k]).value=cfg[k]};
 const cfgFromUI=()=>{for(const k in CI){const e=$(CI[k]);cfg[k]=k==='cl'?(e.value.replace(/\/*$/,'/')):+e.value}};
 function applyParams(){const s=cfg.sp,set=(i,v)=>{q(i).value=v};set('hw',+(cfg.bw*s).toFixed(3));set('rp',+(cfg.rp*s).toFixed(3));set('ld',+(cfg.ld*s).toFixed(3));set('an',cfg.an);set('arp',cfg.ar);set('ch',cfg.ch);set('st',.15);set('ga',.6);window.CPR=cfg.cr*s}
@@ -653,12 +673,12 @@ const lb={P:['left of path','on path','right of path'],C:['pointing left of it',
 gx.fillStyle=mu;gx.font='11px system-ui';if(one){gx.textAlign='left';gx.fillText(lb[0],a0,H-6);gx.textAlign='right';gx.fillText(lb[2],a1,H-6)}else{gx.textAlign='left';gx.fillText(lb[0],a0,H-6);gx.textAlign='center';gx.fillText(lb[1],X(0),H-6);gx.textAlign='right';gx.fillText(lb[2],a1,H-6)}
 if(sig!=null){const s=one?clampn(sig,0,1):clampn(sig,-2,2),v=one?s:Math.min(1,Math.abs(s));gx.fillStyle='#fff';gx.strokeStyle=ak;gx.lineWidth=2;gx.beginPath();gx.arc(X(s),y(v),6,0,7);gx.fill();gx.stroke()}}
 const panWord=th=>Math.abs(th)<12?'the middle':th<0?'your left ear':'your right ear';
-function drawPanBar(cvs,th){if(!cvs)return;const gx=cvs.getContext('2d'),W=cvs.width,H=cvs.height,ak='#f5b700',mu='#9a9a9c',x0=36,x1=304,xm=(x0+x1)/2,pan=Math.sin((th||0)*Math.PI/180);
+function drawPanBar(cvs,th){if(!cvs)return;const st=th==null;const gx=cvs.getContext('2d'),W=cvs.width,H=cvs.height,ak='#f5b700',mu='#9a9a9c',x0=36,x1=304,xm=(x0+x1)/2,pan=Math.sin((th||0)*Math.PI/180);
 gx.clearRect(0,0,W,H);gx.fillStyle='#ddd';gx.font='bold 11px system-ui';gx.textAlign='left';gx.fillText('The sound moves between your ears',8,12);
 gx.strokeStyle=mu;gx.lineWidth=3;gx.beginPath();gx.moveTo(x0,58);gx.lineTo(x1,58);gx.stroke();gx.lineWidth=1;[x0,xm,x1].forEach(x=>{gx.beginPath();gx.moveTo(x,48);gx.lineTo(x,68);gx.stroke()});
 gx.fillStyle=mu;gx.font='11px system-ui';gx.textAlign='center';gx.fillText('left ear',x0,84);gx.fillText('middle',xm,84);gx.fillText('right ear',x1,84);
-gx.fillStyle='#fff';gx.strokeStyle=ak;gx.lineWidth=2;gx.beginPath();gx.arc(xm+pan*(x1-xm),58,10,0,7);gx.fill();gx.stroke();
-gx.fillStyle=ak;gx.font='bold 12px system-ui';gx.fillText('target '+(th<-12?'on your left':th>12?'on your right':'straight ahead')+': sound in '+panWord(th),W/2,112)}
+gx.fillStyle='#fff';gx.strokeStyle=ak;gx.lineWidth=2;gx.beginPath();if(!st){gx.arc(xm+pan*(x1-xm),58,10,0,7);gx.fill();gx.stroke()}
+gx.fillStyle=ak;gx.font='bold 12px system-ui';gx.fillText(st?'the sound sits on the same side as the target':'target '+(th<-12?'on your left':th>12?'on your right':'straight ahead')+': sound in '+panWord(th),W/2,112)}
 const codeWord=th=>{const a=Math.abs(th);return a<15?'straight ahead':a>135?'turn around':th<0?'turn left':'turn right'};
 /* chart of the four code instructions; the active row shows the real pattern for the current bearing, so its long part grows with the turn */
 function drawCodeChart(cvs,th){if(!cvs)return;const gx=cvs.getContext('2d'),W=cvs.width,H=cvs.height,ak='#f5b700',mu='#6f6f73',sc=.16,x0=112,act=th==null?'':codeWord(th),
@@ -698,8 +718,8 @@ const CARS=[['r','Rate','The pulses repeat slowest when you are exactly on the p
 ['v','Volume','The sound is silent when you are exactly on the path. It gets louder as you drift, and is loudest at the edge of the strip and beyond.','Carrier Volume. The sound is silent when you are exactly on the path. It gets louder as you drift, and is loudest at the edge of the strip and beyond.'],
 ['w','Width','There are no pulses when you are exactly on the path. As you drift, pulses appear and get longer, longest at the edge of the strip and beyond.','Carrier Width. There are no pulses when you are exactly on the path. As you drift, pulses appear and get longer, longest at the edge of the strip and beyond.'],
 ['d','Distortion','The sound is clean when you are exactly on the path. It gets rougher as you drift, roughest at the edge of the strip and beyond.','Carrier Distortion. The sound is clean when you are exactly on the path. It gets rougher as you drift, roughest at the edge of the strip and beyond.']];
-const SL=[{t:'The test',b:'Walk on a marked floor grid from one side to the other, with two turns. You will not see the route. The phone guides you with sound or vibration. On the far side, stop and say “here”.',v:'Welcome. You will walk on a grid marked on the floor, from one side to the other. The route always has two turns. You will not see a map and you will not see the route. Your phone gives sound or vibration to guide you. When you reach a point on the far side, stop walking and say here.',k:'grid'},
-{t:'What we measure',b:'We note where you stop, how long it took, and a quick mental-effort rating after each walk. You try twelve designs with a short demo before each one, and no practice walk. Confusing designs are useful data.',v:'We will note which point you stop on, how long you took, and you will give a short mental effort rating after each walk. You will try twelve different designs. Before each walk you will see a short demo. There is no practice walk. There are no right answers.',k:'title'},
+const SL=[{t:'Find the treasure!',b:'A treasure is hidden at one point on the far side of the grid. Walk across the marked floor, with two turns, to find it. You will not see a map or the route. Your phone guides you with sound or vibration. When you think you have found the treasure, stop and say “here”.',v:'Find the treasure! A treasure is hidden at one point on the far side of the grid. Walk across the marked floor to find it. The route always has two turns. You will not see a map and you will not see the route. Your phone guides you with sound or vibration. When you think you have found the treasure, stop and say here.',k:'grid'},
+{t:'After each hunt',b:'After each walk we note where you stopped and how long it took, and you give a quick mental-effort rating. Then we reveal where the treasure really was and how close you got. You hunt with twelve different designs, with a short demo before each one and no practice walk. There are no wrong answers.',v:'After each walk we note where you stopped and how long it took, and you give a short mental effort rating. Then we reveal where the treasure really was, and how close you got. You will hunt with twelve different designs. Before each hunt you see a short demo. There is no practice walk. There are no wrong answers.',k:'title'},
 {t:'Referent: Path',b:'The yellow line is the path, and the shaded strip around it is where the feedback changes. The white dot is you, drifting left and right, and the dot on the graph is you too. On the path, at the centre of the graph, the feedback is at its lowest. The farther you drift, the stronger it gets, up to its maximum at the edge of the strip, and it stays at maximum beyond. Press Hear it to listen, using pulse rate.',v:'Referent Path. The yellow line is the path, and the shaded strip around it is where the feedback changes. The white dot is you, drifting left and right. The dot on the graph is you too. On the path, at the centre of the graph, the feedback is at its lowest. The farther you drift, the stronger it gets, up to its maximum at the edge of the strip.',k:'live',ref:'P',car:'r'},
 {t:'Referent: Checkpoint',b:'A checkpoint is the next turn, shown as a ring. Here you stand still and turn. The white arrow is where you point. The shaded wedge is the zone where the feedback changes. When the arrow points straight at the ring, the graph dot is at the centre and the feedback is at its lowest. Point left or right of it and the dot slides sideways as the feedback grows, to its maximum at the edge of the wedge.',v:'Referent Checkpoint. The ring is the next turn. You stand still and turn. The white arrow is where you point. The shaded wedge is the zone where the feedback changes. When the arrow points straight at the ring, the graph dot is at the centre and the feedback is at its lowest. Point left or right and the dot slides sideways as the feedback grows, to its maximum at the edge of the wedge.',k:'live',ref:'C',car:'r'},
 {t:'Referent: Leading point',b:'Like checkpoint, but the target is the orange guide point, which always stays two steps ahead of you along the path. You walk forward and it moves with you. Point at it for the lowest feedback, with the graph dot at the centre. The more you point away, the stronger it gets.',v:'Referent Leading point. Like checkpoint, but the target is the orange guide point, which always stays two steps ahead of you along the path. You walk forward and it moves with you. Point at it for the lowest feedback, with the graph dot at the centre. The more you point away, the stronger it gets.',k:'live',ref:'L',car:'r'},
@@ -709,7 +729,7 @@ const SL=[{t:'The test',b:'Walk on a marked floor grid from one side to the othe
 .concat([{t:'Types',b:'Pulse: beeps or vibration bursts. Stream: continuous tone. Speech: spoken hints. Code: short and long beeps or buzzes for straight, left or right (explained next). Spatial: one steady sound that moves between your ears towards the target (headphones).',v:'Types. Pulse means short beeps or vibration. Stream is continuous sound. Speech tells you forward, left, or right. Code uses patterns for straight, left, or right. Spatial moves one steady sound between your ears, so you need headphones. Audio uses the speaker. Haptic uses vibration.',k:'title'},
 {t:'Code',b:'Code designs give a short rhythm instead of a changing sound. One short beep = straight ahead. Short then long = turn left. Long then short = turn right. The longer the long beep, the bigger the turn. One very long beep = turn around. Vibration designs use the same pattern as short and long buzzes. The ring is where you need to go, and the chart shows the rhythm for it.',v:'Code. Code designs give a short rhythm instead of a changing sound. One short beep means straight ahead. Short then long means turn left. Long then short means turn right. The longer the long beep, the bigger the turn. One very long beep means turn around. Vibration designs use the same pattern as short and long buzzes.',k:'code'},
 {t:'Spatial sound',b:'Spatial designs use one steady beep or tone and move it between your ears. It is in your left ear when the target is on your left, in your right ear when it is on your right, and in the middle when you face it. Turn until the sound is in the middle, then walk. You need headphones for this. The ring is where you need to go.',v:'Spatial sound. Spatial designs use one steady beep or tone and move it between your ears. It is in your left ear when the target is on your left, in your right ear when it is on your right, and in the middle when you face it. Turn until the sound is in the middle, then walk. You need headphones for this.',k:'pan'},
-{t:'Ready',b:'Hold the phone upright, walk slowly, stop on the far side and say “here”. Ask us any questions now.',v:'You are ready. Hold the phone upright, walk slowly, and stop when you are on a point on the far side. Say here when you stop. Ask us anything.',k:'title'}]);
+{t:'Ready to hunt?',b:'Hold the phone upright, walk slowly, stop where you think the treasure is and say “here”. Ask us any questions now.',v:'You are ready. Hold the phone upright, walk slowly, and stop where you think the treasure is. Say here when you stop. Good luck! Ask us anything.',k:'title'}]);
 const GX=u=>119+u*22,GY=v=>275-v*22,SR=[[3,0],[3,5],[7,5],[7,11]];
 const grid=(path,dot)=>{g.fillStyle='#111';g.fillRect(0,0,480,300);g.fillStyle='#555';for(let i=0;i<12;i++)for(let j=0;j<12;j++){g.beginPath();g.arc(GX(i),GY(j),2,0,7);g.fill()}
 if(path){g.setLineDash([5,5]);g.strokeStyle='#8a6d00';g.lineWidth=3;g.beginPath();path.forEach((q,i)=>i?g.lineTo(GX(q[0]),GY(q[1])):g.moveTo(GX(q[0]),GY(q[1])));g.stroke();g.setLineDash([])}
@@ -740,7 +760,7 @@ const stopEng=()=>{if(demoEng){demoEng=false;restoreEngine()}eng=null};
 const hearLbl=sl=>`▶ Hear it (${CNAME[sl.car]})`;
 const setHear=on=>{const sl=SL[si];if(on){startEng(sl);t0=performance.now()}else stopEng();if(hb)hb.textContent=on?'■ Stop':hearLbl(sl)};
 const scene=()=>{const sl=SL[si],t=(performance.now()-t0)/1000;
-if(sl.k==='grid'){const f=(t%18)/18*(5+4+6),sg=[5,4,6];let a=0,i=0;while(i<2&&f>a+sg[i]){a+=sg[i];i++}const d=Math.min(f-a,sg[i]),p0=SR[i],p1=SR[i+1],l=sg[i];grid(SR,[p0[0]+(p1[0]-p0[0])*d/l,p0[1]+(p1[1]-p0[1])*d/l]);g.fillStyle='#2fa76a';g.beginPath();g.arc(GX(3),GY(0),6,0,7);g.fill();g.fillStyle='#aaa';g.font='13px system-ui';g.textAlign='center';g.fillText('The dashed route is NOT shown to you',240,292)}
+if(sl.k==='grid'){const f=(t%18)/18*(5+4+6),sg=[5,4,6];let a=0,i=0;while(i<2&&f>a+sg[i]){a+=sg[i];i++}const d=Math.min(f-a,sg[i]),p0=SR[i],p1=SR[i+1],l=sg[i];grid(SR,[p0[0]+(p1[0]-p0[0])*d/l,p0[1]+(p1[1]-p0[1])*d/l]);g.fillStyle='#2fa76a';g.beginPath();g.arc(GX(3),GY(0),6,0,7);g.fill();g.strokeStyle='#f5b800';g.lineWidth=4;g.beginPath();g.moveTo(GX(7)-8,GY(11)-8);g.lineTo(GX(7)+8,GY(11)+8);g.moveTo(GX(7)+8,GY(11)-8);g.lineTo(GX(7)-8,GY(11)+8);g.stroke();g.fillStyle='#aaa';g.font='13px system-ui';g.textAlign='center';g.fillText('The dashed route and the gold X (treasure) are hidden in the real hunt',240,292)}
 else if(sl.k==='live'){const st=stateFor(sl,t);drawLive(sl,st);if(eng){pos=st.pos;HD.value=Math.round(((st.hd%360)+360)%360)%360;if(performance.now()-eng.t0>40000)setHear(false)}drawSxGrad(grad,sl.ref,sl.car,st.sig)}
 else if(sl.k==='code'||sl.k==='pan'){const isP=sl.k==='pan',cs=isP?PC:CC,ci=Math.floor(t/6)%cs.length,th=cs[ci],ux=240,uy=Y(2.5),r=Math.PI/180,rx=ux+Math.sin(th*r)*100,ry=uy-Math.cos(th*r)*100;g.fillStyle='#111';g.fillRect(0,0,480,300);
 g.strokeStyle='#444';g.lineWidth=1;g.setLineDash([4,4]);g.beginPath();g.arc(ux,uy,100,0,TAU);g.stroke();g.setLineDash([]);arrowAt(ux,uy,0,60);dotAt(ux,uy);
@@ -765,22 +785,41 @@ vEl.onerror=ph;vEl.onended=()=>{};b.appendChild(vEl);const t0=performance.now();
 const clipSecs=()=>vEl&&vEl._t0?(performance.now()-vEl._t0)/1000:0;
 $('sx-replay').onclick=()=>{if(S)S.replays++;if(demoRestart){stopDemo();showDemo();return}if(vEl&&vEl.readyState>0){vEl.currentTime=0;vEl.play().catch(()=>{})}};
 let prepMode='trial';
-function openIntro(){S=null;prepMode='intro';scr('prep');$('sx-pt').textContent='Introduction video for participant '+$('sx-user').value;$('sx-arm').hidden=true;$('sx-replay').hidden=$('sx-cont').hidden=false;playClip(cfg.cl+'intro','Introduction','Explains the test, the grid, referents, carriers and types.')}
+function openIntro(){S=null;prepMode='intro';scr('prep');$('sx-pt').textContent='Introduction video for participant '+$('sx-user').value;$('sx-dn').hidden=true;$('sx-arm').hidden=true;$('sx-replay').hidden=$('sx-cont').hidden=false;playClip(cfg.cl+'intro','Introduction','Explains the test, the grid, referents, carriers and types.')}
 function openPrep(u,pos,dry){try{S=mk(u,pos,dry)}catch(e){say(e.message);return}prepMode='trial';scr('prep');
-$('sx-pt').textContent=`Participant ${u} · trial ${pos} of ${K}${dry?' · dry run':''}`;$('sx-arm').hidden=true;$('sx-replay').hidden=$('sx-cont').hidden=false;
+$('sx-pt').textContent=`Participant ${u} · trial ${pos} of ${K}${dry?' · dry run':''}`;$('sx-dn').hidden=false;$('sx-dn').innerHTML=`${S.des.name}<small>${friendly(S.des)}</small>`;$('sx-arm').hidden=true;$('sx-replay').hidden=$('sx-cont').hidden=false;
 playClip(cfg.cl+clipName(S.des.name),S.des.name,describe(S.des))}
 $('sx-cont').onclick=()=>{stopDemo();stopSpeak();if(prepMode==='intro'){const v=store.g(INK,{});v[$('sx-user').value]=new Date().toISOString();store.s(INK,v);if(vEl)vEl.pause();scr('home');renderHome();return}
 if(S)S.clipS=+clipSecs().toFixed(1);if(vEl)vEl.pause();$('sx-replay').hidden=$('sx-cont').hidden=true;$('sx-arm').hidden=false;
-const st=S.tr.start;$('sx-ai').innerHTML=`<b>Researcher:</b> place the participant at <b>${ptl(...st)}</b>, feet on the point, phone upright, facing ${S.tr.dir==='N'?'north (towards row 11)':'south (towards row 0)'} along the grid lines.<br>Tap Begin, then stand still. A countdown plays, then the walk starts.`;$('sx-go').textContent=S.dry?'Open dry run':'Begin (AR)'};
+const st=S.tr.start;$('sx-ai').innerHTML=`<b>Researcher:</b> place the participant at <b>${ptl(...st)}</b>, toes touching the start line, body square to the grid, phone upright and square to the body, facing ${S.tr.dir==='N'?'north (towards row 11)':'south (towards row 0)'} along the grid lines. ${cfg.cal>0?`Calibration: tape an X on <b>${ptl(...calPt(S.tr))}</b>, ${cfg.cal} cells straight ahead on the same column. The participant marks the start, walks to the X and back, and that sets the grid direction.`:'The phone facing direction at the end of the countdown defines the grid, so line it up with the tape.'}<br>Tap Begin, then stand still. A countdown plays, then the walk starts.`;$('sx-go').textContent=S.dry?'Open dry run':'Begin (AR)'};
 $('sx-cancel').onclick=()=>{stopDemo();if(vEl)vEl.pause();S=null;scr('home');renderHome()};
 /* ---- walk (AR or dry run) ---- */
+/* compass (Android Chrome only, logged for diagnosis, never used to steer): direction the back camera points, degrees from magnetic north */
+/* calibration walk: the grid direction comes from walking the taped start column, not from where the phone happens to point */
+let CA=null,calF=null,calHold=0;
+const calL=()=>cfg.cal*cfg.sp,calPt=tr=>[tr.start[0],tr.start[1]+(tr.dir==='N'?cfg.cal:-cfg.cal)];
+const calUI=(txt,mark,skip)=>{$('sx-calt').textContent=txt;$('sx-mark').hidden=!mark;$('sx-skip').hidden=!skip};
+function beginCount(t){phase='count';cdT=t;calUI('',false,false);$('sx-card').classList.remove('hid');[0,1,2].forEach(i=>beep(660,.35,120,0,i));beep(990,.4,450,0,3)}
+function calStart(){phase='calA';CA=null;calF=null;calHold=0;$('sx-card').classList.add('hid');hud('Calibration');calUI('Calibration, step 1 of 3. Stand on the start point, toes on the line, phone upright. Tap MARK.',true,true);speakLine('Stand on the start point, then tap mark.')}
+$('sx-mark').onclick=()=>{if(!cur||!S)return;
+if(phase==='calA'){CA=cur.pp.slice();phase='calB';beep(880,.35,120,0,0);calUI(`Calibration, step 2 of 3. Walk straight along the tape to the mark at ${ptl(...calPt(S.tr))}, then tap MARK.`,true,true);speakLine('Walk straight along the tape to the mark, then tap mark.')}
+else if(phase==='calB'){const d=Math.hypot(cur.pp[0]-CA[0],cur.pp[2]-CA[2]);if(d<.8*calL()){calUI(`Too short (${d.toFixed(1)} m of ${calL().toFixed(1)} m). Keep walking to the mark, then tap MARK.`,true,true);return}
+const fx=cur.pp[0]-CA[0],fz=cur.pp[2]-CA[2],nn=Math.hypot(fx,fz);calF=[fx/nn,fz/nn];S.calLen=+d.toFixed(2);beep(880,.35,120,0,0);phase='calC';calUI('Calibration, step 3 of 3. Walk back to the start point, then turn to face the far side.',false,true);speakLine('Walk back to the start point, then turn to face the far side.')}};
+$('sx-skip').onclick=()=>{if(S)S.cal='skipped';calF=null;beginCount(performance.now())};
+let cmp=null;window.addEventListener('deviceorientationabsolute',e=>{if(e.alpha==null||e.beta==null||e.gamma==null)return;const r=Math.PI/180,a=e.alpha*r,b=e.beta*r,g=e.gamma*r,rA=-Math.cos(a)*Math.sin(g)-Math.sin(a)*Math.sin(b)*Math.cos(g),rB=-Math.sin(a)*Math.sin(g)+Math.cos(a)*Math.sin(b)*Math.cos(g);cmp=((Math.atan2(rA,rB)*180/Math.PI)%360+360)%360});
+/* angle (deg, counter-clockwise in grid axes) between where the AR thinks the participant ended and where the researcher says they stopped, both seen from the start point; blank if too short to be meaningful */
+const rotEst=(ae,ld,st)=>{if(!ae)return'';const a=[ae[0]-st[0],ae[1]-st[1]],b=[ld[0]-st[0],ld[1]-st[1]];if(Math.hypot(...a)<3||Math.hypot(...b)<3)return'';return+(Math.atan2(a[0]*b[1]-a[1]*b[0],a[0]*b[0]+a[1]*b[1])*180/Math.PI).toFixed(1)};
 let sess,ref,GL,o=null,cur=null,phase='idle',waitT=0,cdT=0,rows=[],t0=0,lastRec=0,lostF=0,frames=0,capBeeped=false,dryTimer=null,showPath=true,holdT=null,hdDeg=0;
 const fbStart=()=>{if(!running)$('go').click()},fbStop=()=>{if(running)$('go').click()};
 const r3=x=>+x.toFixed(3);
 function setupTrial(){applyParams();applyDesign(S.des);const s=cfg.sp,loc=S.tr.pts.map(g=>toLocal(g,S.tr.start,S.tr.dir,s));
 PATH.length=0;PATH.push(...loc);CPS.length=0;CPS.push(loc[1],loc[2],loc[3]);cp=0;sP=0;pos=[0,0];HD.value=0;rows=[];lostF=0;frames=0;capBeeped=false}
 const hud=(t,c)=>{const e=$('sxhud');e.textContent=t;e.style.color=c||''};
-async function beginWalk(){if(!S)return;if(!ac)initAudio();ac.resume();
+function fillCard(d){$('sx-cn').textContent=d.name;const c=$('sx-cc');let ch=true;
+if(d.SP)drawPanBar(c,null);else if(/Code/.test(d.T))drawCodeChart(c,null);else if(/Speech/.test(d.T))ch=false;else drawSxGrad(c,d.R,d.car,null);
+c.hidden=!ch;$('sx-cx').textContent=brief(d);$('sx-card').classList.remove('min','hid');$('sx-ct').textContent='hide';if(S)S.cardTog=0}
+$('sx-ct').onclick=()=>{const m=$('sx-card').classList.toggle('min');$('sx-ct').textContent=m?'show':'hide';if(S)S.cardTog=(S.cardTog||0)+1};
+async function beginWalk(){if(!S)return;if(!ac)initAudio();ac.resume();fillCard(S.des);CA=null;calF=null;calHold=0;S.cal=cfg.cal>0?'pending':'off';S.calLen='';S.calVsPhone='';
 if(S.dry){$('sx-prep').hidden=true;$('sxr').hidden=false;$('sxr').classList.remove('live');$('sx-dryw').hidden=false;$('sxend').hidden=true;$('sx-dbegin').hidden=false;phase='idle';applyParams();setupTrial();hud('Dry run: drag on the grid to walk, use the slider to turn. Press Start dry run.');drawDry();return}
 if(!navigator.xr){say('WebXR is not available in this browser');return}
 $('sx-prep').hidden=true;$('sxr').hidden=false;$('sx-dryw').hidden=true;$('sxend').hidden=false;
@@ -792,15 +831,17 @@ $('sx-go').onclick=beginWalk;
 function frame(t,f){sess.requestAnimationFrame(frame);GL.bindFramebuffer(GL.FRAMEBUFFER,sess.renderState.baseLayer.framebuffer);GL.clearColor(0,0,0,0);GL.clear(GL.COLOR_BUFFER_BIT);
 const pose=f.getViewerPose(ref);frames++;if(!pose){lostF++;return}const em=pose.emulatedPosition?1:0;lostF+=em;const m=pose.transform.matrix;cur={pp:[m[12],m[13],m[14]],fw:[-m[8],-m[9],-m[10]]};
 const n=Math.hypot(cur.fw[0],cur.fw[2]);
-if(phase==='wait'){if(n>.5){if(!waitT)waitT=t;if(t-waitT>800){phase='count';cdT=t;[0,1,2].forEach(i=>beep(660,.35,120,0,i));beep(990,.4,450,0,3)}}else waitT=0}
-else if(phase==='count'){const e=(t-cdT)/1000;hud('Starting in '+Math.max(1,Math.ceil(3-e)));if(e>=3){const fx=cur.fw[0]/n,fz=cur.fw[2]/n;o={p:cur.pp,f:[fx,fz],r:[-fz,fx]};t0=t;lastRec=-1e9;phase='run';fbStart()}}
+if(phase==='wait'){if(n>.5){if(!waitT)waitT=t;if(t-waitT>800){if(cfg.cal>0)calStart();else beginCount(t)}}else waitT=0}
+else if(phase==='calB'){const d=Math.hypot(cur.pp[0]-CA[0],cur.pp[2]-CA[2]);hud(`Calibration: walked ${d.toFixed(1)} of ${calL().toFixed(1)} m`)}
+else if(phase==='calC'){const d=Math.hypot(cur.pp[0]-CA[0],cur.pp[2]-CA[2]);hud(`Calibration: ${d.toFixed(1)} m to the start point`);if(d<.25){if(!calHold)calHold=t;if(t-calHold>1200){calHold=0;S.cal='ok';beginCount(t)}}else calHold=0}
+else if(phase==='count'){const e=(t-cdT)/1000;hud('Starting in '+Math.max(1,Math.ceil(3-e)));if(e>=3){const ph=n>.1?[cur.fw[0]/n,cur.fw[2]/n]:[0,-1],fv=calF||ph;if(calF&&S)S.calVsPhone=+(Math.atan2(ph[0]*calF[1]-ph[1]*calF[0],ph[0]*calF[0]+ph[1]*calF[1])*180/Math.PI).toFixed(1);o={p:calF?[CA[0],0,CA[2]]:cur.pp,f:fv,r:[-fv[1],fv[0]]};t0=t;lastRec=-1e9;phase='run';if(S)S.cmp0=cmp;fbStart()}}
 else if(phase==='run'){const dx=cur.pp[0]-o.p[0],dz=cur.pp[2]-o.p[2],u=dx*o.r[0]+dz*o.r[1],v=dx*o.f[0]+dz*o.f[1],fu=cur.fw[0]*o.r[0]+cur.fw[2]*o.r[1],fv=cur.fw[0]*o.f[0]+cur.fw[2]*o.f[1];
 pos=[u,v];let hd=0;if(Math.hypot(fu,fv)>.2){hd=((Math.atan2(fu,fv)*180/Math.PI)%360+360)%360;HD.value=Math.round(hd)%360}else hd=+HD.value;
 sample(t,u,v,hd,em)}}
 function sample(t,u,v,hd,em){const el=(t-t0)/1000;if(t-lastRec>=200){lastRec=t;rows.push([r3(el),r3(u),r3(v),+hd.toFixed(1),r3(G.lat||0),em])}
 if(el>cfg.cap&&!capBeeped){capBeeped=true;beep(440,.3,150,0,0);beep(440,.3,150,0,.3)}
 hud((S&&S.dry?'Dry run ':'Recording ')+el.toFixed(0)+' s'+(el>cfg.cap?'  (time cap reached)':''),el>cfg.cap?'#c98a00':'')}
-function onEnd(){const ran=phase==='run';fbStop();$('sxr').classList.remove('live');$('sxr').hidden=true;sess=null;phase='idle';PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0;
+function onEnd(){const ran=phase==='run';fbStop();calUI('',false,false);$('sx-card').classList.remove('hid');$('sxr').classList.remove('live');$('sxr').hidden=true;sess=null;phase='idle';PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0;
 if(!ran||!rows.length){say('Trial ended before the walk started. Nothing recorded.');S=null;scr('home');renderHome();return}openRec()}
 /* long press to end, so a participant cannot end the trial by accident */
 $('sxend').onpointerdown=()=>{$('sxend').textContent='Keep holding...';holdT=setTimeout(()=>{$('sxend').textContent='Hold to end trial (researcher)';endTrial()},700)};
@@ -814,6 +855,7 @@ g.globalAlpha=1;g.fillStyle=mu;g.font='11px system-ui';for(let i=0;i<12;i++){g.t
 const ring=(p,col,fill,r)=>{g.beginPath();g.arc(X(p[0]),Y(p[1]),r||8,0,7);if(fill){g.fillStyle=col;g.fill()}else{g.lineWidth=3;g.strokeStyle=col;g.stroke()}};
 if(op.path){g.lineWidth=3;g.strokeStyle=ak;g.globalAlpha=.8;g.beginPath();op.path.forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));g.stroke();g.globalAlpha=1}
 if(op.start)ring(op.start,'#2fa76a',false,9);if(op.target)ring(op.target,ak,false,11);if(op.landed)ring(op.landed,'#e0489a',true,7);
+if(op.treasure){const t=op.treasure,x=X(t[0]),y=Y(t[1]);if(op.landed){g.setLineDash([5,4]);g.lineWidth=2;g.strokeStyle='#e0489a';g.beginPath();g.moveTo(X(op.landed[0]),Y(op.landed[1]));g.lineTo(x,y);g.stroke();g.setLineDash([])}g.lineWidth=6;g.strokeStyle='#f5b800';g.beginPath();g.moveTo(x-9,y-9);g.lineTo(x+9,y+9);g.moveTo(x+9,y-9);g.lineTo(x-9,y+9);g.stroke()}
 if(op.user){const p=op.user;ring(p,fg,true,6);if(op.hd!=null){const h=op.hd*Math.PI/180,dr=S.tr.dir==='N'?[0,1]:[0,-1],rg=rgtOf(S.tr.dir),a=[Math.sin(h)*rg[0]+Math.cos(h)*dr[0],Math.sin(h)*rg[1]+Math.cos(h)*dr[1]];g.lineWidth=3;g.strokeStyle=fg;g.beginPath();g.moveTo(X(p[0]),Y(p[1]));g.lineTo(X(p[0]+a[0]*.9),Y(p[1]+a[1]*.9));g.stroke()}}}
 function drawDry(){if(!S)return;const c=$('sx-dcv'),g=toGrid(pos[0],pos[1],S.tr.start,S.tr.dir,cfg.sp);drawGrid(c,{path:showPath?S.tr.pts:null,start:S.tr.start,target:showPath?S.tr.target:null,user:g,hd:hdDeg})}
 const dryMove=e=>{if(!S||!S.dry||(e.type==='pointermove'&&!e.buttons))return;const c=$('sx-dcv'),r=c.getBoundingClientRect(),px=(e.clientX-r.left)*c.width/r.width,py=(e.clientY-r.top)*c.height/r.height,cell=dcell(c),gx=(px-dm)/cell,gy=(c.width-dm-py)/cell;pos=toLocal([gx,gy],S.tr.start,S.tr.dir,cfg.sp);drawDry()};
@@ -839,15 +881,21 @@ $('sx-tg').onclick=()=>{tgOn=!tgOn;$('sx-tg').textContent='Show target: '+(tgOn?
 $('sx-time').oninput=()=>{timeTouched=true};
 $('sx-rs').oninput=()=>{rsSet=true;const v=+$('sx-rs').value,a=RS.reduce((b,x)=>Math.abs(x[0]-v)<Math.abs(b[0]-v)?x:b);$('sx-rv').textContent=v+' (nearest: '+a[1]+')'};
 $('sx-anch').innerHTML=RS.map(a=>`<span>${a[0]}<br>${a[1]}</span>`).join('');$('sx-anch').style.flexWrap='wrap';
+/* reveal for the participant, shown after the researcher has saved landing point, time and RSME (so the result cannot colour the effort rating) */
+function showReveal(tr,ld){scr('reveal');const e=landErr(tr.target,ld),n=+e.euc.toFixed(1),m=(e.euc*cfg.sp).toFixed(1);
+$('sx-revh').textContent=e.euc===0?'You found the treasure!':e.euc<=1?'So close!':e.euc<=2?'Very close!':e.euc<=3.5?'Getting warm':'Not this time';
+$('sx-revm').textContent=e.euc===0?'You stopped exactly on it. Nicely done! (Gold X = treasure)':`You stopped ${n} grid squares (${m} m) from the treasure. Pink dot = where you stopped, gold X = the treasure.`;
+drawGrid($('sx-revc'),{start:tr.start,treasure:tr.target,landed:ld})}
+$('sx-revn').onclick=()=>{scr('home');renderHome()};
 $('sx-disc').onclick=()=>{S=null;say('Trial discarded. It stays in the list to run again.');scr('home');renderHome()};
 $('sx-sv').onclick=()=>{const miss=[];if(!landed)miss.push('landing point');if(!rsSet)miss.push('RSME');const tv=parseFloat($('sx-time').value);if(!(tv>=0))miss.push('time');if(miss.length){$('sx-rm').textContent='Missing: '+miss.join(', ');return}
-if(S.dry){say('Dry run finished. Nothing stored.');S=null;scr('home');renderHome();return}
+if(S.dry){say('Dry run finished. Nothing stored.');showReveal(S.tr,landed);S=null;return}
 const tr=S.tr,e=landErr(tr.target,landed),sm=S.sum||{},ae=sm.ar_end,rec={u:S.u,pos:S.pos,design:S.des.name,modality:S.des.mod,type:S.des.T,referent:S.des.R,carrier:S.des.car||'',start:ptl(...tr.start),target:ptl(...tr.target),direction:tr.dir,delta_cells:tr.map.delta,turn_row:tr.map.k,map_class:['easy','medium','hard'][tr.cls],
 landed:ptl(...landed),err_euclid_cells:+e.euc.toFixed(3),err_manhattan_cells:e.man,err_dx_cells:e.dx,err_dy_cells:e.dy,hit:e.euc===0?1:0,on_target_side:landed[1]===tr.target[1]?1:0,
 time_s:tv,time_source:timeTouched?'stopwatch':'ar_estimate',time_ar_s:sm.time_ar_s??'',time_phone_s:sm.time_phone_s??'',capped:$('sx-capd').checked?1:0,rsme:+$('sx-rs').value,
 ar_end_pt:ae?ptl(...ae):'',ar_vs_landed_cells:ae?+Math.hypot(ae[0]-landed[0],ae[1]-landed[1]).toFixed(2):'',walked_m:sm.walked_m??'',mean_dev_m:sm.mean_lat_m??'',rms_dev_m:sm.rms_lat_m??'',max_dev_m:sm.max_lat_m??'',tracking_lost_pct:sm.lost_pct??'',
-clip_watch_s:S.clipS,clip_replays:S.replays,clip_missing:S.clipMissing?1:0,notes:$('sx-notes').value,started:S.iso,spacing_m:cfg.sp,band_cells:cfg.bw,ramp_cells:cfg.rp,lead_cells:cfg.ld,checkpoint_radius_cells:cfg.cr,cap_s:cfg.cap,angle_thr:cfg.an,angle_ramp:cfg.ar,corner_hold:cfg.ch,device:navigator.userAgent};
-const all=trials().filter(t=>!(t.u===S.u&&t.pos===S.pos));all.push(rec);if(!store.s(TRK,all))return;store.s(trKey(S.u,S.pos),S.trace);say(`Saved participant ${S.u}, trial ${S.pos}. ${trials().filter(t=>t.u===S.u).length}/${K} done.`);S=null;scr('home');renderHome()};
+cal_status:S.cal||'',cal_len_m:S.calLen??'',cal_vs_phone_deg:S.calVsPhone??'',compass_start_deg:S.cmp0==null?'':Math.round(S.cmp0),ar_rot_est_deg:rotEst(ae,landed,tr.start),card_toggles:S.cardTog||0,clip_watch_s:S.clipS,clip_replays:S.replays,clip_missing:S.clipMissing?1:0,notes:$('sx-notes').value,started:S.iso,spacing_m:cfg.sp,band_cells:cfg.bw,ramp_cells:cfg.rp,lead_cells:cfg.ld,checkpoint_radius_cells:cfg.cr,cap_s:cfg.cap,angle_thr:cfg.an,angle_ramp:cfg.ar,corner_hold:cfg.ch,device:navigator.userAgent};
+const all=trials().filter(t=>!(t.u===S.u&&t.pos===S.pos));all.push(rec);if(!store.s(TRK,all))return;store.s(trKey(S.u,S.pos),S.trace);say(`Saved participant ${S.u}, trial ${S.pos}. ${trials().filter(t=>t.u===S.u).length}/${K} done.`);showReveal(tr,landed);S=null};
 /* ---- export ---- */
 function exportAll(){const T=trials();if(!T.length){say('No data stored yet.');return}const cols=Object.keys(T[0]),p=getPlan();
 const tr=[];T.forEach(t=>(store.g(trKey(t.u,t.pos),[])).forEach(r=>tr.push([t.u,t.pos,t.design,...r])));
@@ -882,11 +930,30 @@ PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR
 const lg=toGrid(...toLocal([5,5],[3,0],'N',s),[3,0],'N',s),ls=toGrid(...toLocal([5,5],[8,11],'S',s),[8,11],'S',s);out.push('geometry round trip '+lg.map(x=>x.toFixed(2))+' / '+ls.map(x=>x.toFixed(2)));
 const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
 function demo(k){showMode('sc');const u=1;if(/^intro\d*$/.test(k)){openIntro();setTimeout(()=>{const n=Math.max(0,(+k.slice(5)||1)-1);for(let i=0;i<n;i++)$('sx-dp').click()},400)}
+else if(k==='reveal'){S=mk(u,1,false);showReveal(S.tr,[S.tr.target[0]+1,S.tr.target[1]-1])}
+else if(k==='drycode'){openPrep(u,1,true);S.des=DES.find(d=>d.T==='A.Code');$('sx-cont').click();beginWalk()}
 else if(k==='playsp'){openPrep(u,1,false);S.des=DES.find(d=>d.SP);setTimeout(()=>{$('sx-dp').click()},600)}
 else if(k==='playcode'){openPrep(u,1,false);S.des=DES.find(d=>d.T==='A.Code');setTimeout(()=>{$('sx-dp').click()},600)}
 else if(k==='play'||k==='playend'){openPrep(u,1,false);setTimeout(()=>{$('sx-dp').click()},600)}
 else if(k==='prep'){openPrep(u,1,false);$('sx-cont').click()}else if(k==='dry'){openPrep(u,1,true);$('sx-cont').click();beginWalk()}
 else if(k==='rec'){S=mk(u,1,false);rows=[[0,0,0,0,0,0],[2,0,1,0,.1,0],[4,0.5,2,10,.3,0],[6,1,2.5,0,.3,0],[8,1,2.5,0,.3,0]];S.sum=summarise();S.trace=rows;openRec();landed=[4,11];tgOn=true;drawRec()}else if(k==='sheet'){$('sx-shw').dataset.on='1';renderSheet()}}
+function pulseTest(){const rec=[],ob=beep,oa=ac;ac={currentTime:0};beep=(f,v,du,di,at=0)=>rec.push(ac.currentTime+at);
+const d={on:true,rate:3,vol:.3,tone:660,width:.09,dist:0},steps=[.03,.045,.06,.03,.1,.03,.05];nxtA=0;
+for(let i=0;i<500;i++){ac.currentTime+=steps[i%steps.length];pulse(d,false)}
+const iv=rec.slice(1).map((x,i)=>(x-rec[i])*1000),mn=Math.min(...iv),mx=Math.max(...iv);
+beep=ob;ac=oa;nxtA=0;const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=`pulses: ${rec.length}, interval ms min ${mn.toFixed(2)} max ${mx.toFixed(2)} (target 333.33)`;document.body.appendChild(pre)}
+/* simulated AR frames: the grid axis is 20 degrees off the phone's initial facing; the calibration must recover it */
+function calTest(){const out=[];showMode('sc');initAudio();S=mk(1,1,false);cfg.cal=4;const th=20*Math.PI/180,ax=[Math.sin(th),-Math.cos(th)];
+sess={requestAnimationFrame(){},renderState:{baseLayer:{framebuffer:null}}};GL={FRAMEBUFFER:0,COLOR_BUFFER_BIT:0,bindFramebuffer(){},clearColor(){},clear(){}};ref={};
+let T=0;const fr=(p,fw)=>{T+=100;const m=new Array(16).fill(0);m[12]=p[0];m[13]=1.4;m[14]=p[1];m[8]=-fw[0];m[10]=-fw[1];frame(T,{getViewerPose:()=>({emulatedPosition:false,transform:{matrix:m}})})};
+S.cal=cfg.cal>0?'pending':'off';phase='wait';waitT=0;CA=null;calF=null;o=null;const F0_=[0,-1];
+for(let i=0;i<12;i++)fr([0,0],F0_);out.push('after wait: '+phase);$('sx-mark').click();out.push('after mark A: '+phase);
+for(let i=0;i<=20;i++)fr([ax[0]*i*.1,ax[1]*i*.1],ax);$('sx-mark').click();out.push('after mark B: '+phase+', len '+S.calLen+' m');
+for(let i=20;i>=0;i--)fr([ax[0]*i*.1,ax[1]*i*.1],F0_);for(let i=0;i<16;i++)fr([0,0],F0_);out.push('after return: '+phase+', cal '+S.cal);
+for(let i=0;i<34;i++)fr([0,0],F0_);out.push('after countdown: '+phase+', phone-vs-calibrated '+S.calVsPhone+' deg');
+for(let i=1;i<=10;i++)fr([ax[0]*i*.2,ax[1]*i*.2],ax);out.push('walked 2.0 m along the grid axis -> pos u '+pos[0].toFixed(2)+', v '+pos[1].toFixed(2));
+fbStop();phase='idle';sess=null;calUI('',false,false);
+const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
 function flowTest(){const out=[];showMode('sc');S=mk(2,3,false);phase='run';t0=0;
 rows=[[0,0,0,0,.0,0],[1,0,1,0,.1,0],[3,0,3,0,.2,0],[5,-1.5,3,300,.2,0],[7,-1.5,5,0,.3,0],[9,-1.5,5.1,0,.3,0],[11,-1.5,5.1,0,.3,0]];
 onEnd();out.push('record visible: '+!$('sx-rec').hidden+' | '+$('sx-rt').textContent);
@@ -898,7 +965,7 @@ $('sx-rs').value=62;$('sx-rs').dispatchEvent(new Event('input'));$('sx-time').va
 const t=trials();out.push('stored trials: '+t.length);out.push(JSON.stringify(t[0]));out.push('trace rows: '+store.g(trKey(2,3),[]).length);out.push('next pos for user 2: '+nextPos(2)+' | status: '+$('sx-st').textContent);
 out.push('path restored: '+PATH.length+' CPR='+window.CPR);
 const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
-if(location.hash==='#flowtest')setTimeout(flowTest,200);
+if(location.hash==='#flowtest')setTimeout(flowTest,200);if(location.hash==='#pulsetest')setTimeout(pulseTest,200);if(location.hash==='#caltest')setTimeout(calTest,200);
 if(location.hash==='#selftest')setTimeout(selfTest,200);const dm_=/^#demo=(\w+)/.exec(location.hash);if(dm_)setTimeout(()=>demo(dm_[1]),200);
 })();
 </script></body></html>
