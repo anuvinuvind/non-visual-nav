@@ -60,6 +60,9 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 #sx-calt{display:none}#sxr.live #sx-calt{display:block;position:fixed;left:16px;right:16px;top:52%;transform:translateY(-50%);text-align:center;font:600 19px/1.4 system-ui;color:#e8e8e8}
 #sxr.live #sx-mark{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);padding:26px;font-size:20px;font-weight:700;background:#f5b700;color:#111;border:0;border-radius:12px;margin:0}
 #sxr.live #sx-skip{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 88px);padding:12px;font-size:13px;background:#1b1b1b;color:#777;border:1px solid #333;margin:0}#sx-card.hid{display:none}
+#sxr.live.pass{background:transparent}#sxr.live.pass #sxhud{background:rgba(0,0,0,.65);color:#ddd;padding:4px 8px;border-radius:6px;right:auto}
+#sxr.live.pass #sx-calt{top:64px;transform:none;font-size:14px;font-weight:500;background:rgba(0,0,0,.65);padding:8px 10px;border-radius:8px;text-align:left}
+#sxr.live #sx-ver{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);background:rgba(0,0,0,.65);padding:8px;border-radius:10px}#sx-ver button{font-size:15px;padding:10px 6px}
 #sx-revc{max-width:100%;margin:8px 0}#sx-revh{margin:6px 0;font-size:22px}
 #sxr{margin:8px 0}#sx-dcv{max-width:100%;margin:8px 0}
 #sxr.live{position:fixed;inset:0;background:#000;color:#777;z-index:9;margin:0}
@@ -179,6 +182,8 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 <label>Plan seed<input id="sx-sd" type="number" value="20261123"></label>
 <label>Participants<input id="sx-nu" type="number" value="17"></label>
 <label>Calibration walk (cells, 0 = off)<input id="sx-cal" type="number" step="1" value="4"></label>
+<label>Grid overlay check (1 = on, 0 = off)<input id="sx-vr" type="number" step="1" value="1"></label>
+<label>Phone height m (if floor not detected)<input id="sx-ph" type="number" step="0.05" value="1.3"></label>
 </div>
 <div class="r"><button id="sx-regen">Regenerate plan</button><button id="sx-save">Save settings</button></div>
 <pre id="sx-rep" class="m" style="white-space:pre-wrap"></pre>
@@ -198,6 +203,7 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 <div id="sxhud"></div>
 <div id="sx-calt"></div>
 <button id="sx-mark" type="button" hidden>MARK</button><button id="sx-skip" type="button" hidden>Skip calibration (use phone facing)</button>
+<div id="sx-ver" hidden><div class="r"><button data-k="l">◀ grid</button><button data-k="r">grid ▶</button><button data-k="d">▼</button><button data-k="u">▲</button><button data-k="ccw">↺</button><button data-k="cw">↻</button></div><div class="r"><button data-k="redo">Redo calibration</button><button class="p" data-k="ok">Looks aligned: start</button></div></div>
 <div id="sx-card"><div id="sx-ch2"><b id="sx-cn"></b><button id="sx-ct" type="button">hide</button></div><div id="sx-cb"><canvas id="sx-cc" width="340" height="132"></canvas><div id="sx-cx"></div></div></div>
 <div id="sx-dryw"><canvas id="sx-dcv" width="340" height="340"></canvas>
 <label>Heading (° from forward)<input type="range" id="sx-hd" min="-180" max="180" value="0"></label>
@@ -605,7 +611,7 @@ const fmtRep=r=>`replicates per design: ${r.reps[0]} to ${r.reps[1]}\npair co-oc
 const CORE3={catalogCfg,genPlan,planReport,fmtRep,makeMap,mapPts,toLocal,toGrid,landErr,ptl,rng32,COLS};
 /*ENDCORE3*/
 const $=i=>document.getElementById(i),RS=[[2,'absolutely no effort'],[13,'almost no effort'],[26,'little effort'],[37,'some effort'],[57,'rather much effort'],[71,'considerable effort'],[85,'great effort'],[102,'very great effort'],[113,'extreme effort']];
-const CFK='sx_cfg',PLK='sx_plan',TRK='sx_trials',INK='sx_intro',DEF={sp:.5,bw:1,rp:2,ld:2,cr:.6,cap:90,an:30,ar:60,ch:40,cl:'clips/',sd:20261123,nu:17,cal:4};
+const CFK='sx_cfg',PLK='sx_plan',TRK='sx_trials',INK='sx_intro',DEF={sp:.5,bw:1,rp:2,ld:2,cr:.6,cap:90,an:30,ar:60,ch:40,cl:'clips/',sd:20261123,nu:17,cal:4,ver:1,ph:1.3};
 const store={g(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){$('sx-st').textContent='Could not save: storage is full or blocked. Export now.';return false}},d(k){try{localStorage.removeItem(k)}catch(e){}}};
 let cfg=Object.assign({},DEF,store.g(CFK,{}));
 const say=t=>{$('sx-st').textContent=t};
@@ -636,7 +642,7 @@ const pts=mapPts(t.map,t.dir);return{u,pos,dry,des,tr:{dir:t.dir,map:t.map,cls:t
 let S=null;
 const scr=k=>{['sx-home','sx-prep','sxr','sx-rec','sx-rev'].forEach(i=>$(i).hidden=i!=={home:'sx-home',prep:'sx-prep',walk:'sxr',rec:'sx-rec',reveal:'sx-rev'}[k])};
 /* ---- settings ---- */
-const CI={sp:'sx-sp',bw:'sx-bw',rp:'sx-rp',ld:'sx-ld',cr:'sx-cr',cap:'sx-cap',an:'sx-an',ar:'sx-ar',ch:'sx-ch',cl:'sx-cl',sd:'sx-sd',nu:'sx-nu',cal:'sx-cal'};
+const CI={sp:'sx-sp',bw:'sx-bw',rp:'sx-rp',ld:'sx-ld',cr:'sx-cr',cap:'sx-cap',an:'sx-an',ar:'sx-ar',ch:'sx-ch',cl:'sx-cl',sd:'sx-sd',nu:'sx-nu',cal:'sx-cal',ver:'sx-vr',ph:'sx-ph'};
 const cfgToUI=()=>{for(const k in CI)$(CI[k]).value=cfg[k]};
 const cfgFromUI=()=>{for(const k in CI){const e=$(CI[k]);cfg[k]=k==='cl'?(e.value.replace(/\/*$/,'/')):+e.value}};
 function applyParams(){const s=cfg.sp,set=(i,v)=>{q(i).value=v};set('hw',+(cfg.bw*s).toFixed(3));set('rp',+(cfg.rp*s).toFixed(3));set('ld',+(cfg.ld*s).toFixed(3));set('an',cfg.an);set('arp',cfg.ar);set('ch',cfg.ch);set('st',.15);set('ga',.6);window.CPR=cfg.cr*s}
@@ -797,15 +803,42 @@ $('sx-cancel').onclick=()=>{stopDemo();if(vEl)vEl.pause();S=null;scr('home');ren
 /* compass (Android Chrome only, logged for diagnosis, never used to steer): direction the back camera points, degrees from magnetic north */
 /* calibration walk: the grid direction comes from walking the taped start column, not from where the phone happens to point */
 let CA=null,calF=null,calHold=0;
+/* ---- virtual floor grid, drawn only for the alignment check (the walk itself stays on a black screen) ---- */
+let gProg=null,gBuf=null,gLoc={},hitSrc=null,floorY=null,floorSrc='',lastVT=-1e9;const ADJK='sx_adj',adj=Object.assign({r:0,f:0,rot:0},store.g(ADJK,{}),{rot:0});
+function initGridGL(){const vs='attribute vec3 p;uniform mat4 uP,uV;void main(){gl_Position=uP*uV*vec4(p,1.0);}',fs='precision mediump float;uniform vec4 uC;void main(){gl_FragColor=uC;}',mkS=(t,src)=>{const x=GL.createShader(t);GL.shaderSource(x,src);GL.compileShader(x);return x};
+gProg=GL.createProgram();GL.attachShader(gProg,mkS(GL.VERTEX_SHADER,vs));GL.attachShader(gProg,mkS(GL.FRAGMENT_SHADER,fs));GL.linkProgram(gProg);
+gLoc={p:GL.getAttribLocation(gProg,'p'),uP:GL.getUniformLocation(gProg,'uP'),uV:GL.getUniformLocation(gProg,'uV'),uC:GL.getUniformLocation(gProg,'uC')};gBuf=GL.createBuffer()}
+const rotF=(f0,deg)=>{const a=deg*Math.PI/180,c=Math.cos(a),n=Math.sin(a);return[f0[0]*c+f0[1]*n,-f0[0]*n+f0[1]*c]};/* positive = counter-clockwise seen from above */
+/* triangles (x,y,z) for the 12x12 grid lines, the start square and the calibration-mark square, in AR world coordinates */
+function gridGeom(){const s=cfg.sp,tr=S.tr,f=rotF(calF,adj.rot),r=[-f[1],f[0]],ox=CA[0]+r[0]*adj.r+f[0]*adj.f,oz=CA[2]+r[1]*adj.r+f[1]*adj.f,y=(floorY==null?CA[1]-cfg.ph:floorY)+.006;
+const W=(u,v)=>[ox+r[0]*u+f[0]*v,oz+r[1]*u+f[1]*v],Gp=(gx,gy)=>{const l=toLocal([gx,gy],tr.start,tr.dir,s);return W(l[0],l[1])};
+const rib=(a,b,w,out)=>{const dx=b[0]-a[0],dz=b[1]-a[1],n=Math.hypot(dx,dz)||1,px=-dz/n*w,pz=dx/n*w;[[a[0]+px,a[1]+pz],[a[0]-px,a[1]-pz],[b[0]+px,b[1]+pz],[b[0]+px,b[1]+pz],[a[0]-px,a[1]-pz],[b[0]-px,b[1]-pz]].forEach(q=>out.push(q[0],y,q[1]))};
+const sq=(c0,h,out)=>{[[-h,-h],[h,-h],[h,h],[-h,-h],[h,h],[-h,h]].forEach(q=>out.push(c0[0]+q[0],y+.002,c0[1]+q[1]))};
+const grid=[],st=[],mk=[];for(let i=0;i<12;i++){rib(Gp(i,0),Gp(i,11),.012,grid);rib(Gp(0,i),Gp(11,i),.012,grid)}
+sq(W(0,0),.12,st);sq(W(0,calL()),.12,mk);return{grid:new Float32Array(grid),start:new Float32Array(st),mark:new Float32Array(mk)}}
+function drawVerify(pose){const view=pose.views&&pose.views[0];if(!view||!gProg)return;const vp=sess.renderState.baseLayer.getViewport(view);GL.viewport(vp.x,vp.y,vp.width,vp.height);
+GL.useProgram(gProg);GL.uniformMatrix4fv(gLoc.uP,false,view.projectionMatrix);GL.uniformMatrix4fv(gLoc.uV,false,view.transform.inverse.matrix);
+GL.bindBuffer(GL.ARRAY_BUFFER,gBuf);GL.enableVertexAttribArray(gLoc.p);GL.vertexAttribPointer(gLoc.p,3,GL.FLOAT,false,0,0);GL.disable(GL.DEPTH_TEST);
+const g=gridGeom();[[g.grid,[1,.78,0,1]],[g.start,[.2,.85,.4,1]],[g.mark,[1,1,1,1]]].forEach(z=>{GL.bufferData(GL.ARRAY_BUFFER,z[0],GL.DYNAMIC_DRAW);GL.uniform4fv(gLoc.uC,z[1]);GL.drawArrays(GL.TRIANGLES,0,z[0].length/3)})}
+function updateFloor(f){if(!hitSrc||!f.getHitTestResults)return;const h=f.getHitTestResults(hitSrc);if(h.length){const p=h[0].getPose(ref);if(p){const y=p.transform.position.y;if(y<cur.pp[1]-.6){floorY=floorY==null?y:floorY*.8+y*.2;floorSrc='hit-test'}}}}
+const verText=()=>calUI(`Check the grid: point the phone at the floor. Do the yellow lines sit on the tape? Green square = start, white square = calibration X. Floor ${floorSrc==='hit-test'?'detected':'estimated, so lines may look shifted'}. Nudge: right ${adj.r.toFixed(2)} m, forward ${adj.f.toFixed(2)} m, turn ${adj.rot}°.`,false,false);
+function verStart(){phase='verify';floorSrc=floorSrc||'';$('sxr').classList.add('pass');$('sx-ver').hidden=false;hud('Alignment check');verText();speakLine('Check the grid on the floor. If the yellow lines sit on the tape, tap looks aligned.')}
+function endVer(){$('sx-ver').hidden=true;$('sxr').classList.remove('pass')}
+function verOk(){const f=rotF(calF,adj.rot),r=[-f[1],f[0]];CA=[CA[0]+r[0]*adj.r+f[0]*adj.f,CA[1],CA[2]+r[1]*adj.r+f[1]*adj.f];calF=f;
+S.adjRot=adj.rot;S.adjF=+adj.f.toFixed(3);S.adjR=+adj.r.toFixed(3);S.floorSrc=floorSrc||'assumed';store.s(ADJK,{r:adj.r,f:adj.f});S.cal='ok';endVer();beginCount(performance.now())}
+$('sx-ver').onclick=e=>{const b=e.target.closest('button');if(!b||phase!=='verify')return;const k=b.dataset.k;
+if(k==='l')adj.r-=.05;else if(k==='r')adj.r+=.05;else if(k==='u')adj.f+=.05;else if(k==='d')adj.f-=.05;else if(k==='ccw')adj.rot+=1;else if(k==='cw')adj.rot-=1;
+else if(k==='redo'){endVer();calStart();return}else if(k==='ok'){verOk();return}verText()};
+const finishCal=t=>{if(cfg.ver>0)verStart();else{S.cal='ok';S.floorSrc='none';beginCount(t)}};
 const calL=()=>cfg.cal*cfg.sp,calPt=tr=>[tr.start[0],tr.start[1]+(tr.dir==='N'?cfg.cal:-cfg.cal)];
 const calUI=(txt,mark,skip)=>{$('sx-calt').textContent=txt;$('sx-mark').hidden=!mark;$('sx-skip').hidden=!skip};
 function beginCount(t){phase='count';cdT=t;calUI('',false,false);$('sx-card').classList.remove('hid');[0,1,2].forEach(i=>beep(660,.35,120,0,i));beep(990,.4,450,0,3)}
-function calStart(){phase='calA';CA=null;calF=null;calHold=0;$('sx-card').classList.add('hid');hud('Calibration');calUI('Calibration, step 1 of 3. Stand on the start point, toes on the line, phone upright. Tap MARK.',true,true);speakLine('Stand on the start point, then tap mark.')}
+function calStart(){phase='calA';CA=null;calF=null;calHold=0;adj.rot=0;$('sx-card').classList.add('hid');hud('Calibration');calUI('Calibration, step 1 of 3. Stand on the start point, toes on the line, phone upright. Tap MARK.',true,true);speakLine('Stand on the start point, then tap mark.')}
 $('sx-mark').onclick=()=>{if(!cur||!S)return;
 if(phase==='calA'){CA=cur.pp.slice();phase='calB';beep(880,.35,120,0,0);calUI(`Calibration, step 2 of 3. Walk straight along the tape to the mark at ${ptl(...calPt(S.tr))}, then tap MARK.`,true,true);speakLine('Walk straight along the tape to the mark, then tap mark.')}
 else if(phase==='calB'){const d=Math.hypot(cur.pp[0]-CA[0],cur.pp[2]-CA[2]);if(d<.8*calL()){calUI(`Too short (${d.toFixed(1)} m of ${calL().toFixed(1)} m). Keep walking to the mark, then tap MARK.`,true,true);return}
 const fx=cur.pp[0]-CA[0],fz=cur.pp[2]-CA[2],nn=Math.hypot(fx,fz);calF=[fx/nn,fz/nn];S.calLen=+d.toFixed(2);beep(880,.35,120,0,0);phase='calC';calUI('Calibration, step 3 of 3. Walk back to the start point, then turn to face the far side.',false,true);speakLine('Walk back to the start point, then turn to face the far side.')}};
-$('sx-skip').onclick=()=>{if(S)S.cal='skipped';calF=null;beginCount(performance.now())};
+$('sx-skip').onclick=()=>{if(S)S.cal='skipped';calF=null;endVer();beginCount(performance.now())};
 let cmp=null;window.addEventListener('deviceorientationabsolute',e=>{if(e.alpha==null||e.beta==null||e.gamma==null)return;const r=Math.PI/180,a=e.alpha*r,b=e.beta*r,g=e.gamma*r,rA=-Math.cos(a)*Math.sin(g)-Math.sin(a)*Math.sin(b)*Math.cos(g),rB=-Math.sin(a)*Math.sin(g)+Math.cos(a)*Math.sin(b)*Math.cos(g);cmp=((Math.atan2(rA,rB)*180/Math.PI)%360+360)%360});
 /* angle (deg, counter-clockwise in grid axes) between where the AR thinks the participant ended and where the researcher says they stopped, both seen from the start point; blank if too short to be meaningful */
 const rotEst=(ae,ld,st)=>{if(!ae)return'';const a=[ae[0]-st[0],ae[1]-st[1]],b=[ld[0]-st[0],ld[1]-st[1]];if(Math.hypot(...a)<3||Math.hypot(...b)<3)return'';return+(Math.atan2(a[0]*b[1]-a[1]*b[0],a[0]*b[0]+a[1]*b[1])*180/Math.PI).toFixed(1)};
@@ -823,9 +856,10 @@ async function beginWalk(){if(!S)return;if(!ac)initAudio();ac.resume();fillCard(
 if(S.dry){$('sx-prep').hidden=true;$('sxr').hidden=false;$('sxr').classList.remove('live');$('sx-dryw').hidden=false;$('sxend').hidden=true;$('sx-dbegin').hidden=false;phase='idle';applyParams();setupTrial();hud('Dry run: drag on the grid to walk, use the slider to turn. Press Start dry run.');drawDry();return}
 if(!navigator.xr){say('WebXR is not available in this browser');return}
 $('sx-prep').hidden=true;$('sxr').hidden=false;$('sx-dryw').hidden=true;$('sxend').hidden=false;
-try{sess=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local'],optionalFeatures:['dom-overlay'],domOverlay:{root:$('sxr')}})}catch(e){sess=null;$('sxr').hidden=true;scr('prep');say('Could not start AR: '+e.name+': '+e.message);return}
+try{sess=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local'],optionalFeatures:['dom-overlay','hit-test'],domOverlay:{root:$('sxr')}})}catch(e){sess=null;$('sxr').hidden=true;scr('prep');say('Could not start AR: '+e.name+': '+e.message);return}
 const c=document.createElement('canvas');GL=c.getContext('webgl',{xrCompatible:true});if(GL.makeXRCompatible)await GL.makeXRCompatible();
 sess.updateRenderState({baseLayer:new XRWebGLLayer(sess,GL)});ref=await sess.requestReferenceSpace('local');
+initGridGL();hitSrc=null;floorY=null;floorSrc='';try{const vsp=await sess.requestReferenceSpace('viewer');hitSrc=await sess.requestHitTestSource({space:vsp})}catch(e){hitSrc=null}
 o=null;cur=null;phase='wait';waitT=0;setupTrial();$('sxr').classList.add('live');hud('Hold the phone upright, facing forward.');sess.addEventListener('end',onEnd);sess.requestAnimationFrame(frame)}
 $('sx-go').onclick=beginWalk;
 function frame(t,f){sess.requestAnimationFrame(frame);GL.bindFramebuffer(GL.FRAMEBUFFER,sess.renderState.baseLayer.framebuffer);GL.clearColor(0,0,0,0);GL.clear(GL.COLOR_BUFFER_BIT);
@@ -833,7 +867,8 @@ const pose=f.getViewerPose(ref);frames++;if(!pose){lostF++;return}const em=pose.
 const n=Math.hypot(cur.fw[0],cur.fw[2]);
 if(phase==='wait'){if(n>.5){if(!waitT)waitT=t;if(t-waitT>800){if(cfg.cal>0)calStart();else beginCount(t)}}else waitT=0}
 else if(phase==='calB'){const d=Math.hypot(cur.pp[0]-CA[0],cur.pp[2]-CA[2]);hud(`Calibration: walked ${d.toFixed(1)} of ${calL().toFixed(1)} m`)}
-else if(phase==='calC'){const d=Math.hypot(cur.pp[0]-CA[0],cur.pp[2]-CA[2]);hud(`Calibration: ${d.toFixed(1)} m to the start point`);if(d<.25){if(!calHold)calHold=t;if(t-calHold>1200){calHold=0;S.cal='ok';beginCount(t)}}else calHold=0}
+else if(phase==='calC'){const d=Math.hypot(cur.pp[0]-CA[0],cur.pp[2]-CA[2]);hud(`Calibration: ${d.toFixed(1)} m to the start point`);if(d<.25){if(!calHold)calHold=t;if(t-calHold>1200){calHold=0;finishCal(t)}}else calHold=0}
+else if(phase==='verify'){updateFloor(f);drawVerify(pose);if(t-lastVT>500){lastVT=t;verText()}}
 else if(phase==='count'){const e=(t-cdT)/1000;hud('Starting in '+Math.max(1,Math.ceil(3-e)));if(e>=3){const ph=n>.1?[cur.fw[0]/n,cur.fw[2]/n]:[0,-1],fv=calF||ph;if(calF&&S)S.calVsPhone=+(Math.atan2(ph[0]*calF[1]-ph[1]*calF[0],ph[0]*calF[0]+ph[1]*calF[1])*180/Math.PI).toFixed(1);o={p:calF?[CA[0],0,CA[2]]:cur.pp,f:fv,r:[-fv[1],fv[0]]};t0=t;lastRec=-1e9;phase='run';if(S)S.cmp0=cmp;fbStart()}}
 else if(phase==='run'){const dx=cur.pp[0]-o.p[0],dz=cur.pp[2]-o.p[2],u=dx*o.r[0]+dz*o.r[1],v=dx*o.f[0]+dz*o.f[1],fu=cur.fw[0]*o.r[0]+cur.fw[2]*o.r[1],fv=cur.fw[0]*o.f[0]+cur.fw[2]*o.f[1];
 pos=[u,v];let hd=0;if(Math.hypot(fu,fv)>.2){hd=((Math.atan2(fu,fv)*180/Math.PI)%360+360)%360;HD.value=Math.round(hd)%360}else hd=+HD.value;
@@ -841,7 +876,7 @@ sample(t,u,v,hd,em)}}
 function sample(t,u,v,hd,em){const el=(t-t0)/1000;if(t-lastRec>=200){lastRec=t;rows.push([r3(el),r3(u),r3(v),+hd.toFixed(1),r3(G.lat||0),em])}
 if(el>cfg.cap&&!capBeeped){capBeeped=true;beep(440,.3,150,0,0);beep(440,.3,150,0,.3)}
 hud((S&&S.dry?'Dry run ':'Recording ')+el.toFixed(0)+' s'+(el>cfg.cap?'  (time cap reached)':''),el>cfg.cap?'#c98a00':'')}
-function onEnd(){const ran=phase==='run';fbStop();calUI('',false,false);$('sx-card').classList.remove('hid');$('sxr').classList.remove('live');$('sxr').hidden=true;sess=null;phase='idle';PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0;
+function onEnd(){const ran=phase==='run';fbStop();calUI('',false,false);endVer();$('sx-card').classList.remove('hid');$('sxr').classList.remove('live');$('sxr').hidden=true;sess=null;phase='idle';PATH.length=0;PATH.push(...P0);CPS.length=0;CPS.push(...C0);cp=0;sP=0;window.CPR=0;
 if(!ran||!rows.length){say('Trial ended before the walk started. Nothing recorded.');S=null;scr('home');renderHome();return}openRec()}
 /* long press to end, so a participant cannot end the trial by accident */
 $('sxend').onpointerdown=()=>{$('sxend').textContent='Keep holding...';holdT=setTimeout(()=>{$('sxend').textContent='Hold to end trial (researcher)';endTrial()},700)};
@@ -894,7 +929,7 @@ const tr=S.tr,e=landErr(tr.target,landed),sm=S.sum||{},ae=sm.ar_end,rec={u:S.u,p
 landed:ptl(...landed),err_euclid_cells:+e.euc.toFixed(3),err_manhattan_cells:e.man,err_dx_cells:e.dx,err_dy_cells:e.dy,hit:e.euc===0?1:0,on_target_side:landed[1]===tr.target[1]?1:0,
 time_s:tv,time_source:timeTouched?'stopwatch':'ar_estimate',time_ar_s:sm.time_ar_s??'',time_phone_s:sm.time_phone_s??'',capped:$('sx-capd').checked?1:0,rsme:+$('sx-rs').value,
 ar_end_pt:ae?ptl(...ae):'',ar_vs_landed_cells:ae?+Math.hypot(ae[0]-landed[0],ae[1]-landed[1]).toFixed(2):'',walked_m:sm.walked_m??'',mean_dev_m:sm.mean_lat_m??'',rms_dev_m:sm.rms_lat_m??'',max_dev_m:sm.max_lat_m??'',tracking_lost_pct:sm.lost_pct??'',
-cal_status:S.cal||'',cal_len_m:S.calLen??'',cal_vs_phone_deg:S.calVsPhone??'',compass_start_deg:S.cmp0==null?'':Math.round(S.cmp0),ar_rot_est_deg:rotEst(ae,landed,tr.start),card_toggles:S.cardTog||0,clip_watch_s:S.clipS,clip_replays:S.replays,clip_missing:S.clipMissing?1:0,notes:$('sx-notes').value,started:S.iso,spacing_m:cfg.sp,band_cells:cfg.bw,ramp_cells:cfg.rp,lead_cells:cfg.ld,checkpoint_radius_cells:cfg.cr,cap_s:cfg.cap,angle_thr:cfg.an,angle_ramp:cfg.ar,corner_hold:cfg.ch,device:navigator.userAgent};
+cal_status:S.cal||'',cal_adj_rot_deg:S.adjRot??'',cal_adj_fwd_m:S.adjF??'',cal_adj_right_m:S.adjR??'',floor_src:S.floorSrc??'',cal_len_m:S.calLen??'',cal_vs_phone_deg:S.calVsPhone??'',compass_start_deg:S.cmp0==null?'':Math.round(S.cmp0),ar_rot_est_deg:rotEst(ae,landed,tr.start),card_toggles:S.cardTog||0,clip_watch_s:S.clipS,clip_replays:S.replays,clip_missing:S.clipMissing?1:0,notes:$('sx-notes').value,started:S.iso,spacing_m:cfg.sp,band_cells:cfg.bw,ramp_cells:cfg.rp,lead_cells:cfg.ld,checkpoint_radius_cells:cfg.cr,cap_s:cfg.cap,angle_thr:cfg.an,angle_ramp:cfg.ar,corner_hold:cfg.ch,device:navigator.userAgent};
 const all=trials().filter(t=>!(t.u===S.u&&t.pos===S.pos));all.push(rec);if(!store.s(TRK,all))return;store.s(trKey(S.u,S.pos),S.trace);say(`Saved participant ${S.u}, trial ${S.pos}. ${trials().filter(t=>t.u===S.u).length}/${K} done.`);showReveal(tr,landed);S=null};
 /* ---- export ---- */
 function exportAll(){const T=trials();if(!T.length){say('No data stored yet.');return}const cols=Object.keys(T[0]),p=getPlan();
@@ -942,17 +977,21 @@ const d={on:true,rate:3,vol:.3,tone:660,width:.09,dist:0},steps=[.03,.045,.06,.0
 for(let i=0;i<500;i++){ac.currentTime+=steps[i%steps.length];pulse(d,false)}
 const iv=rec.slice(1).map((x,i)=>(x-rec[i])*1000),mn=Math.min(...iv),mx=Math.max(...iv);
 beep=ob;ac=oa;nxtA=0;const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=`pulses: ${rec.length}, interval ms min ${mn.toFixed(2)} max ${mx.toFixed(2)} (target 333.33)`;document.body.appendChild(pre)}
-/* simulated AR frames: the grid axis is 20 degrees off the phone's initial facing; the calibration must recover it */
-function calTest(){const out=[];showMode('sc');initAudio();S=mk(1,1,false);cfg.cal=4;const th=20*Math.PI/180,ax=[Math.sin(th),-Math.cos(th)];
-sess={requestAnimationFrame(){},renderState:{baseLayer:{framebuffer:null}}};GL={FRAMEBUFFER:0,COLOR_BUFFER_BIT:0,bindFramebuffer(){},clearColor(){},clear(){}};ref={};
-let T=0;const fr=(p,fw)=>{T+=100;const m=new Array(16).fill(0);m[12]=p[0];m[13]=1.4;m[14]=p[1];m[8]=-fw[0];m[10]=-fw[1];frame(T,{getViewerPose:()=>({emulatedPosition:false,transform:{matrix:m}})})};
-S.cal=cfg.cal>0?'pending':'off';phase='wait';waitT=0;CA=null;calF=null;o=null;const F0_=[0,-1];
+/* simulated AR frames: the grid axis is 20 degrees off the phone's initial facing; calibration must recover it and the overlay must sit on the marks */
+function calTest(){const out=[];showMode('sc');initAudio();S=mk(1,1,false);cfg.cal=4;cfg.ver=1;const th=20*Math.PI/180,ax=[Math.sin(th),-Math.cos(th)];
+sess={requestAnimationFrame(){},renderState:{baseLayer:{framebuffer:null,getViewport:()=>({x:0,y:0,width:1,height:1})}}};GL=new Proxy({},{get:(t,k)=>typeof k==='string'&&/^[A-Z][A-Z_0-9]*$/.test(k)?1:()=>({})});ref={};initGridGL();hitSrc={};floorY=null;floorSrc='';adj.r=adj.f=adj.rot=0;
+const I=new Float32Array(16);let T=0;const fr=(p,fw)=>{T+=100;const m=new Array(16).fill(0);m[12]=p[0];m[13]=1.4;m[14]=p[1];m[8]=-fw[0];m[10]=-fw[1];frame(T,{getHitTestResults:()=>[{getPose:()=>({transform:{position:{y:0}}})}],getViewerPose:()=>({emulatedPosition:false,views:[{projectionMatrix:I,transform:{inverse:{matrix:I}}}],transform:{matrix:m}})})};
+S.cal='pending';phase='wait';waitT=0;CA=null;calF=null;o=null;const F0_=[0,-1];
 for(let i=0;i<12;i++)fr([0,0],F0_);out.push('after wait: '+phase);$('sx-mark').click();out.push('after mark A: '+phase);
 for(let i=0;i<=20;i++)fr([ax[0]*i*.1,ax[1]*i*.1],ax);$('sx-mark').click();out.push('after mark B: '+phase+', len '+S.calLen+' m');
-for(let i=20;i>=0;i--)fr([ax[0]*i*.1,ax[1]*i*.1],F0_);for(let i=0;i<16;i++)fr([0,0],F0_);out.push('after return: '+phase+', cal '+S.cal);
+for(let i=20;i>=0;i--)fr([ax[0]*i*.1,ax[1]*i*.1],F0_);for(let i=0;i<16;i++)fr([0,0],F0_);out.push('after return: '+phase+', floor '+floorSrc);
+const g=gridGeom(),cen=a=>{let x=0,z=0;for(let k=0;k<a.length;k+=3){x+=a[k];z+=a[k+2]}return[x/(a.length/3),z/(a.length/3)]},cs=cen(g.start),cm=cen(g.mark);
+out.push('start square at ('+cs.map(v=>v.toFixed(2))+'), expected (0.00,0.00)');out.push('calibration square at ('+cm.map(v=>v.toFixed(2))+'), expected ('+(ax[0]*2).toFixed(2)+','+(ax[1]*2).toFixed(2)+')');out.push('floor y of lines '+g.grid[1].toFixed(3)+', triangles '+g.grid.length/9);
+const nud=k=>document.querySelector('#sx-ver [data-k="'+k+'"]').click();nud('u');out.push('after nudge forward: adj.f '+adj.f.toFixed(2));nud('d');nud('ccw');nud('cw');out.push('adj back to f '+adj.f.toFixed(2)+', rot '+adj.rot);
+nud('ok');out.push('after OK: '+phase+', cal '+S.cal);
 for(let i=0;i<34;i++)fr([0,0],F0_);out.push('after countdown: '+phase+', phone-vs-calibrated '+S.calVsPhone+' deg');
 for(let i=1;i<=10;i++)fr([ax[0]*i*.2,ax[1]*i*.2],ax);out.push('walked 2.0 m along the grid axis -> pos u '+pos[0].toFixed(2)+', v '+pos[1].toFixed(2));
-fbStop();phase='idle';sess=null;calUI('',false,false);
+fbStop();phase='idle';sess=null;calUI('',false,false);endVer();
 const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
 function flowTest(){const out=[];showMode('sc');S=mk(2,3,false);phase='run';t0=0;
 rows=[[0,0,0,0,.0,0],[1,0,1,0,.1,0],[3,0,3,0,.2,0],[5,-1.5,3,300,.2,0],[7,-1.5,5,0,.3,0],[9,-1.5,5.1,0,.3,0],[11,-1.5,5.1,0,.3,0]];
