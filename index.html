@@ -220,6 +220,9 @@ details{margin-top:10px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 <input id="sx-time" type="number" step="0.1" style="width:100%"></div>
 <div class="sxbox"><b>3. Mental effort (RSME)</b> <span id="sx-rv" class="m">not set</span>
 <input type="range" id="sx-rs" min="0" max="150" value="0"><div id="sx-anch"></div></div>
+<div class="sxbox"><b>4. Measured gap to the treasure (cm, optional)</b> <span class="m">tape measure from the treasure point to the participant's toes</span>
+<div class="g"><label>Across (+ right of treasure, - left)<input id="sx-ma" type="number" step="1"></label><label>Along (+ beyond treasure, - short)<input id="sx-ml" type="number" step="1"></label></div>
+<div class="m" id="sx-ard"></div></div>
 <div class="sxbox"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="sx-capd"> Hit time cap, participant never settled</label>
 <label>Notes<input id="sx-notes"></label></div>
 <div class="r"><button id="sx-disc">Discard trial</button><button class="p" id="sx-sv">Save trial</button></div>
@@ -904,11 +907,19 @@ let landed=null,tgOn=false,rsSet=false,timeTouched=false;
 function summarise(){const n=rows.length;if(!n)return null;const last=rows[n-1];let ei=n-1;for(let i=n-1;i>=0;i--){if(Math.hypot(rows[i][1]-last[1],rows[i][2]-last[2])<=.15)ei=i;else break}
 let walked=0;for(let i=1;i<=ei;i++)walked+=Math.hypot(rows[i][1]-rows[i-1][1],rows[i][2]-rows[i-1][2]);const lat=rows.slice(0,ei+1).map(r=>r[4]);
 return{time_phone_s:last[0],time_ar_s:rows[ei][0],walked_m:+walked.toFixed(2),mean_lat_m:r3(lat.reduce((a,b)=>a+b,0)/lat.length),rms_lat_m:r3(Math.sqrt(lat.reduce((a,b)=>a+b*b,0)/lat.length)),max_lat_m:r3(Math.max(...lat)),lost_pct:+(100*rows.filter(r=>r[5]).length/n).toFixed(1),ar_end:toGrid(rows[ei][1],rows[ei][2],S.tr.start,S.tr.dir,cfg.sp)}}
+/* AR error in the participant's own frame (cm): across = right of the treasure is +, along = beyond the treasure is +. Compare with the tape-measured values to estimate AR drift. */
+function arErr(){const ae=S&&S.sum&&S.sum.ar_end;if(!ae)return null;const sp=cfg.sp,le=toLocal(ae,S.tr.start,S.tr.dir,sp),lt=toLocal(S.tr.target,S.tr.start,S.tr.dir,sp);return{a:Math.round((le[0]-lt[0])*100),l:Math.round((le[1]-lt[1])*100)}}
+const sgn=v=>(v>0?'+':'')+v;
+function arShow(){const e=arErr(),ma=$('sx-ma').value,ml=$('sx-ml').value;let t='AR has no end position for this trial.';
+if(e){t=`AR says they ended across ${sgn(e.a)} cm, along ${sgn(e.l)} cm from the treasure (gap ${Math.round(Math.hypot(e.a,e.l))} cm). Copy these into the Excel if you log by hand.`;if(ma!==''&&ml!=='')t+=` Drift (AR minus measured): ${Math.round(Math.hypot(e.a-ma,e.l-ml))} cm.`}$('sx-ard').textContent=t}
+$('sx-ma').oninput=$('sx-ml').oninput=arShow;
+function armeas(){const e=arErr(),ma=$('sx-ma').value,ml=$('sx-ml').value,has=ma!==''&&ml!=='';
+return{meas_across_cm:ma===''?'':+ma,meas_along_cm:ml===''?'':+ml,meas_gap_cm:has?Math.round(Math.hypot(+ma,+ml)):'',ar_across_cm:e?e.a:'',ar_along_cm:e?e.l:'',ar_gap_cm:e?Math.round(Math.hypot(e.a,e.l)):'',ar_drift_cm:(e&&has)?Math.round(Math.hypot(e.a-ma,e.l-ml)):''}}
 function drawRec(){drawGrid($('sx-gc'),{start:S.tr.start,target:tgOn?S.tr.target:null,landed})}
 function openRec(){S.sum=summarise();S.trace=rows.slice();scr('rec');landed=null;tgOn=false;rsSet=false;timeTouched=false;
 $('sx-rt').textContent=`Participant ${S.u} · trial ${S.pos}/${K} · ${S.des.name}${S.dry?' · DRY RUN (not stored)':''}`;
 $('sx-time').value=S.sum?S.sum.time_ar_s.toFixed(1):'';$('sx-tm').textContent=S.sum?`AR estimate of when they stopped. Type your stopwatch time to replace it.`:'';
-$('sx-rs').value=75;$('sx-rv').textContent='not set (tap the slider)';$('sx-capd').checked=false;$('sx-notes').value='';$('sx-rm').textContent='';$('sx-lp').textContent='tap the grid';$('sx-tg').textContent='Show target: off';
+$('sx-rs').value=75;$('sx-rv').textContent='not set (tap the slider)';$('sx-capd').checked=false;$('sx-notes').value='';$('sx-rm').textContent='';$('sx-ma').value='';$('sx-ml').value='';arShow();$('sx-lp').textContent='tap the grid';$('sx-tg').textContent='Show target: off';
 $('sx-sv').textContent=S.dry?'Finish (dry run, not stored)':'Save trial';drawRec()}
 $('sx-gc').onpointerdown=e=>{const c=$('sx-gc'),r=c.getBoundingClientRect(),px=(e.clientX-r.left)*c.width/r.width,py=(e.clientY-r.top)*c.height/r.height,cell=dcell(c);
 landed=[Math.max(0,Math.min(11,Math.round((px-dm)/cell))),Math.max(0,Math.min(11,Math.round((c.width-dm-py)/cell)))];$('sx-lp').textContent='Landed on '+ptl(...landed);drawRec()};
@@ -929,15 +940,17 @@ const tr=S.tr,e=landErr(tr.target,landed),sm=S.sum||{},ae=sm.ar_end,rec={u:S.u,p
 landed:ptl(...landed),err_euclid_cells:+e.euc.toFixed(3),err_manhattan_cells:e.man,err_dx_cells:e.dx,err_dy_cells:e.dy,hit:e.euc===0?1:0,on_target_side:landed[1]===tr.target[1]?1:0,
 time_s:tv,time_source:timeTouched?'stopwatch':'ar_estimate',time_ar_s:sm.time_ar_s??'',time_phone_s:sm.time_phone_s??'',capped:$('sx-capd').checked?1:0,rsme:+$('sx-rs').value,
 ar_end_pt:ae?ptl(...ae):'',ar_vs_landed_cells:ae?+Math.hypot(ae[0]-landed[0],ae[1]-landed[1]).toFixed(2):'',walked_m:sm.walked_m??'',mean_dev_m:sm.mean_lat_m??'',rms_dev_m:sm.rms_lat_m??'',max_dev_m:sm.max_lat_m??'',tracking_lost_pct:sm.lost_pct??'',
-cal_status:S.cal||'',cal_adj_rot_deg:S.adjRot??'',cal_adj_fwd_m:S.adjF??'',cal_adj_right_m:S.adjR??'',floor_src:S.floorSrc??'',cal_len_m:S.calLen??'',cal_vs_phone_deg:S.calVsPhone??'',compass_start_deg:S.cmp0==null?'':Math.round(S.cmp0),ar_rot_est_deg:rotEst(ae,landed,tr.start),card_toggles:S.cardTog||0,clip_watch_s:S.clipS,clip_replays:S.replays,clip_missing:S.clipMissing?1:0,notes:$('sx-notes').value,started:S.iso,spacing_m:cfg.sp,band_cells:cfg.bw,ramp_cells:cfg.rp,lead_cells:cfg.ld,checkpoint_radius_cells:cfg.cr,cap_s:cfg.cap,angle_thr:cfg.an,angle_ramp:cfg.ar,corner_hold:cfg.ch,device:navigator.userAgent};
+...armeas(),cal_status:S.cal||'',cal_adj_rot_deg:S.adjRot??'',cal_adj_fwd_m:S.adjF??'',cal_adj_right_m:S.adjR??'',floor_src:S.floorSrc??'',cal_len_m:S.calLen??'',cal_vs_phone_deg:S.calVsPhone??'',compass_start_deg:S.cmp0==null?'':Math.round(S.cmp0),ar_rot_est_deg:rotEst(ae,landed,tr.start),card_toggles:S.cardTog||0,clip_watch_s:S.clipS,clip_replays:S.replays,clip_missing:S.clipMissing?1:0,notes:$('sx-notes').value,started:S.iso,spacing_m:cfg.sp,band_cells:cfg.bw,ramp_cells:cfg.rp,lead_cells:cfg.ld,checkpoint_radius_cells:cfg.cr,cap_s:cfg.cap,angle_thr:cfg.an,angle_ramp:cfg.ar,corner_hold:cfg.ch,device:navigator.userAgent};
 const all=trials().filter(t=>!(t.u===S.u&&t.pos===S.pos));all.push(rec);if(!store.s(TRK,all))return;store.s(trKey(S.u,S.pos),S.trace);say(`Saved participant ${S.u}, trial ${S.pos}. ${trials().filter(t=>t.u===S.u).length}/${K} done.`);showReveal(tr,landed);S=null};
 /* ---- export ---- */
+/* one row per 200 ms sample: time, position in metres (u = right, v = forward from the start), heading, deviation from the path, tracking flag, and the same position as grid coordinates in cells (col 0 = A ... 11 = L, row 0 ... 11) */
+function buildTraces(T,p){const out=[];T.forEach(t=>{const pl=p.trials[t.u-1]&&p.trials[t.u-1][t.pos-1];if(!pl)return;const st=mapPts(pl.map,pl.dir)[0],sp=t.spacing_m||cfg.sp;(store.g(trKey(t.u,t.pos),[])).forEach(r=>{const q=toGrid(r[1],r[2],st,pl.dir,sp);out.push([t.u,t.pos,t.design,...r,+q[0].toFixed(3),+q[1].toFixed(3)])})});return out}
 function exportAll(){const T=trials();if(!T.length){say('No data stored yet.');return}const cols=Object.keys(T[0]),p=getPlan();
-const tr=[];T.forEach(t=>(store.g(trKey(t.u,t.pos),[])).forEach(r=>tr.push([t.u,t.pos,t.design,...r])));
+const tr=buildTraces(T,p);
 const plan=[];p.trials.forEach((u,ui)=>u.forEach((t,i)=>{const g=mapPts(t.map,t.dir);plan.push([ui+1,i+1,t.name,ptl(...g[0]),ptl(...g[3]),t.dir,t.map.delta,t.map.k,['easy','medium','hard'][t.cls]])}));
 const meta=[['field','value'],['test','screening_grid_walk'],['participants',cfg.nu],['designs',DES.length],['trials_per_participant',K],['plan_seed',cfg.sd],['exported',new Date().toISOString()],['catalogue',DES.map(d=>d.name).join(', ')],['plan_quality',p.report||''],['intro_watched',JSON.stringify(store.g(INK,{}))],['device',navigator.userAgent]];
 const aoa=[cols].concat(T.map(t=>cols.map(c=>t[c])));
-if(window.XLSX){const W=XLSX.utils.book_new(),add=(n,a)=>XLSX.utils.book_append_sheet(W,XLSX.utils.aoa_to_sheet(a),n);add('Meta',meta);add('Trials',aoa);add('Traces',[['u','pos','design','t_s','u_m','v_m','heading_deg','lateral_dev_m','tracking_lost']].concat(tr));add('Plan',[['u','pos','design','start','target','direction','delta_cells','turn_row','map_class']].concat(plan));XLSX.writeFile(W,'screening_all_participants.xlsx');say(`Downloaded ${T.length} trials.`)}
+if(window.XLSX){const W=XLSX.utils.book_new(),add=(n,a)=>XLSX.utils.book_append_sheet(W,XLSX.utils.aoa_to_sheet(a),n);add('Meta',meta);add('Trials',aoa);add('Traces',[['u','pos','design','t_s','u_m','v_m','heading_deg','lateral_dev_m','tracking_lost','grid_col_cells','grid_row_cells']].concat(tr));add('Plan',[['u','pos','design','start','target','direction','delta_cells','turn_row','map_class']].concat(plan));XLSX.writeFile(W,'screening_all_participants.xlsx');say(`Downloaded ${T.length} trials.`)}
 else{const csv=aoa.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='screening_trials.csv';a.click();alert('Excel library did not load, so only the Trials sheet was saved as CSV.')}}
 $('sx-exp').onclick=exportAll;
 $('sx-clr').onclick=()=>{if(!confirm('Delete ALL screening data on this device? Export first.'))return;trials().forEach(t=>store.d(trKey(t.u,t.pos)));store.d(TRK);store.d(INK);say('Cleared.');renderHome()};
@@ -993,6 +1006,9 @@ for(let i=0;i<34;i++)fr([0,0],F0_);out.push('after countdown: '+phase+', phone-v
 for(let i=1;i<=10;i++)fr([ax[0]*i*.2,ax[1]*i*.2],ax);out.push('walked 2.0 m along the grid axis -> pos u '+pos[0].toFixed(2)+', v '+pos[1].toFixed(2));
 fbStop();phase='idle';sess=null;calUI('',false,false);endVer();
 const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
+/* dumps the plan (participants x trials, routes) so a paper or Excel log can be built from the same data */
+function planDump(){const p=getPlan(),rows=p.trials.map((u,ui)=>u.map((t,i)=>{const g=mapPts(t.map,t.dir);return[ui+1,i+1,t.name,DES.find(x=>x.name===t.name).mod,g.map(q=>ptl(...q)),t.dir,t.map.delta,t.map.k,['easy','medium','hard'][t.cls],t.map.sign]}));
+const pre=document.createElement('pre');pre.id='sx-plandump';pre.textContent=JSON.stringify({users:cfg.nu,seed:cfg.sd,spacing:cfg.sp,designs:DES.map(d=>({name:d.name,mod:d.mod,desc:describe(d),type:d.T,R:d.R,car:d.car||'',SP:!!d.SP})),rows});document.body.appendChild(pre)}
 function flowTest(){const out=[];showMode('sc');S=mk(2,3,false);phase='run';t0=0;
 rows=[[0,0,0,0,.0,0],[1,0,1,0,.1,0],[3,0,3,0,.2,0],[5,-1.5,3,300,.2,0],[7,-1.5,5,0,.3,0],[9,-1.5,5.1,0,.3,0],[11,-1.5,5.1,0,.3,0]];
 onEnd();out.push('record visible: '+!$('sx-rec').hidden+' | '+$('sx-rt').textContent);
@@ -1000,11 +1016,11 @@ const c=$('sx-gc'),r=c.getBoundingClientRect(),cell=dcell(c),tg=S.tr.target;
 c.dispatchEvent(new PointerEvent('pointerdown',{clientX:r.left+(dm+(tg[0]+1)*cell)*r.width/c.width,clientY:r.top+(c.width-dm-tg[1]*cell)*r.height/c.height}));
 out.push('target '+ptl(...tg)+' tapped -> '+$('sx-lp').textContent);
 $('sx-sv').click();out.push('missing msg: '+$('sx-rm').textContent);
-$('sx-rs').value=62;$('sx-rs').dispatchEvent(new Event('input'));$('sx-time').value='11.4';$('sx-time').dispatchEvent(new Event('input'));$('sx-sv').click();
+$('sx-ma').value=12;$('sx-ml').value=-30;$('sx-rs').value=62;$('sx-rs').dispatchEvent(new Event('input'));$('sx-time').value='11.4';$('sx-time').dispatchEvent(new Event('input'));$('sx-sv').click();
 const t=trials();out.push('stored trials: '+t.length);out.push(JSON.stringify(t[0]));out.push('trace rows: '+store.g(trKey(2,3),[]).length);out.push('next pos for user 2: '+nextPos(2)+' | status: '+$('sx-st').textContent);
-out.push('path restored: '+PATH.length+' CPR='+window.CPR);
+out.push('trace export row: '+JSON.stringify(buildTraces(trials(),getPlan())[2]));out.push('path restored: '+PATH.length+' CPR='+window.CPR);
 const pre=document.createElement('pre');pre.id='sx-selftest';pre.textContent=out.join('\n');document.body.appendChild(pre)}
-if(location.hash==='#flowtest')setTimeout(flowTest,200);if(location.hash==='#pulsetest')setTimeout(pulseTest,200);if(location.hash==='#caltest')setTimeout(calTest,200);
+if(location.hash==='#flowtest')setTimeout(flowTest,200);if(location.hash==='#pulsetest')setTimeout(pulseTest,200);if(location.hash==='#plandump')setTimeout(planDump,200);if(location.hash==='#caltest')setTimeout(calTest,200);
 if(location.hash==='#selftest')setTimeout(selfTest,200);const dm_=/^#demo=(\w+)/.exec(location.hash);if(dm_)setTimeout(()=>demo(dm_[1]),200);
 })();
 </script></body></html>
